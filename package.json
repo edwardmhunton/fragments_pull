@@ -1,0 +1,31 @@
+{
+  "name": "fragment_pulls",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "babel-node server/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "curlrequest": "^1.0.1",
+    "download-file": "^0.1.5",
+    "express": "^4.16.2",
+    "eyes": "^0.1.8",
+    "fs": "0.0.1-security",
+    "install": "^0.10.2",
+    "lodash": "^4.17.4",
+    "npm": "^5.6.0",
+    "path": "^0.12.7",
+    "request": "^2.83.0",
+    "set": "^1.1.1",
+    "simple-grep": "0.0.1",
+    "xml2js": "^0.4.19"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1"
+  }
+}
