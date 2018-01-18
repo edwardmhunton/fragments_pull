@@ -8,18 +8,12 @@ import fs from 'fs';
 
 import path from 'path';
 
-//console.log("dirname   "+__dirname);
-
-
-//const app = express();
 
 let options = {
   manifest: 'http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/',
   chunk: 'QualityLevels(3184960)/Fragments(video=',
 
 };
-
-//let chunk = '/QualityLevels(3184960)/Fragments(video='+vid+')';
 
 const manPath = '/manifest';
 

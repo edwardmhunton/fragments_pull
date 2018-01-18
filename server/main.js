@@ -5,6 +5,8 @@ import eyes from 'eyes';
 import fs from 'fs';
 import express from 'express';
 
+import watch from 'node-watch';
+
 import _ from 'lodash';
 
 import util from 'util';
@@ -40,8 +42,79 @@ const beginTest = function(){
 
     console.log("begin the test");
 
+    watchFolders();
+
      manifestInterval();
      createTimeoutForIntervalB();
+}
+
+
+const watchFolders = function(){
+  var origCount = [];
+  var ACount = [];
+  var BCount = [];
+  var CCount = [];
+
+  fs.watch('./server/fragments/hostA', { recursive: false }, function(evt, name) {
+
+      ACount.push(name);
+      if(ACount.length > 10){
+
+        fs.unlink('./server/fragments/hostA/'+ACount[0], function(){
+              ACount.shift();
+        });
+      }
+  });
+  fs.watch('./server/fragments/hostB', { recursive: false }, function(evt, name) {
+    BCount.push(name);
+
+    if(BCount.length > 10){
+
+      fs.unlink('./server/fragments/hostB/'+BCount[0], function(){
+            BCount.shift();
+      });
+
+
+    }
+  });
+  fs.watch('./server/fragments/hostC', { recursive: false }, function(evt, name) {
+    CCount.push(name);
+    if(CCount.length > 10){
+
+      fs.unlink('./server/fragments/hostC/'+CCount[0], function(){
+             CCount.shift();
+      });
+
+
+    }
+  });
+  fs.watch('./server/fragments/hostD', { recursive: false }, function(evt, name) {
+    DCount.push(name);
+    if(DCount.length > 10){
+
+      fs.unlink('./server/fragments/hostD/'+DCount[0], function(){
+             DCount.shift();
+      });
+
+
+    }
+  });
+
+  fs.watch('./server/fragments/original', { recursive: false }, function(evt, name) {
+    origCount.push(name);
+    console.log("OG COUNT: "+origCount)
+    console.log("LEN "+origCount.length)
+    if(origCount.length > 20){
+
+      fs.unlink('./server/fragments/original/'+origCount[0], function(){
+        console.log("unlink");
+             origCount.shift();
+      });
+
+
+    }
+  });
+
 }
 
 const createTimeoutForIntervalB = function(){
@@ -87,9 +160,8 @@ const cInterval = function(intervalName, type){
             downloadChunk(timecodes[0], 'hostA');
             downloadChunk(timecodes[0], 'hostB');
             downloadChunk(timecodes[0], 'hostC');
+          //  downloadChunk(timecodes[0], 'hostD');
 
-            OLDTIME = timecodes[0];
-            //downloadChunk(timecodes[0], 'hostD');
 
           }
         }, 2000);
@@ -121,22 +193,30 @@ const downloadChunk = function(time, interval){
       break;
 
   }
+
   var url = 'http://'+host+'/z2skysportsmainevent/1301.isml/QualityLevels(4864960)/Fragments(video='+time+')';
 
-  const options = {
+  //console.log("The URL: "+url);
+
+  let options = {
     url: url,
     method: 'GET',
     headers: {
         'Accept': 'application/json',
         'Accept-Charset': 'utf-8',
-        'User-Agent': 'my-reddit-client',
-        'Host': 'origin7.skysportsmainevent.hss.skydvn.com'
+        'User-Agent': 'fragment-puller'
 
     }
 
+
+
 };
 
-var holder = {'original':'', 'hostA':'', 'hostB':'', hostC:'', 'counter':0}
+if(interval !== 'original'){
+
+  options.headers.Host =  'origin7.skysportsmainevent.hss.skydvn.com';
+}
+
 
 var filename = './server/fragments/'+interval+'/chunk_'+time+'.mp4';
 
@@ -148,33 +228,27 @@ request(options, function(err, res, body){
 
   if(!filesToTest[time]){
 
-       filesToTest[time] = holder;
+       filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'counter':0}
 
   }
 
 
-
   filesToTest[time][interval] = filename;
+
 
   if(interval !== 'original'){
   if(filesToTest[time].counter < 3){
 
      filesToTest[time].counter++;
-     if(filesToTest[time].counter === 3){
+
+     if(filesToTest[time].counter === 3 && filesToTest[time].original){
          testThem(filesToTest[time]);
      }
 
 
    }
-        //if(filesToTest[time].original && filesToTest[time].hostA && filesToTest[time].hostB && filesToTest[time].hostC) {
-
-        //  testThem(filesToTest[time]);
-      //  }
-
 
   }
-  //  }
-  console.log(util.inspect(filesToTest, false, null));
 
 });
 
@@ -183,108 +257,113 @@ request(options, function(err, res, body){
 
 const equivalence = function(obj, sizes){
 
-  console.log("sizes: "+sizes)
-
   function allEqual(arr) {
+    for(var i = 0; i <arr.length-1; i++ ){
 
-    !!arr.reduce(
-      function(a, b){
-        return (a === b) ? a : NaN;
-      });
-
+          if(arr[i] != arr[i+1]){
+            return false;
+          }
     }
-
+    return true;
+  }
 
   var EQ = allEqual(sizes);
 
-  console.log("EQ  "+EQ);
-
   if(EQ === true) {
+    /*fs.unlink(obj.original, function(err){
+        console.log("del Orig");
+        fs.unlink(obj.hostA, function(err){
+            console.log("del A");
 
-    console.log("All the same");
-    //fs.unlink(obj.original);
-    fs.unlink(obj.hostA);
-    fs.unlink(obj.hostB);
-    fs.unlink(obj.hostC);
-    //fs.unlink(obj.hostD);
+          fs.unlink(obj.hostB, function(err){
+              console.log("del B");
+            fs.unlink(obj.hostC, function(err){
+                console.log("del C");
 
-  } else {
+            })
 
-    console.log("Not all the same");
+          })
+
+        })
+
+      })*/
+
+    } else {
+      moveThem(obj)
+    }
+  }
+
+const moveThem = function(obj){
+
+  delete obj['counter'];
+
+  console.log("MOVE SOME FILES SOMWHERE");
+  console.log("THE OBJ "+util.inspect(obj, false, null));
+
+  for(var key in obj){
+
+        if(obj.hasOwnProperty(key)){
+
+          var s = obj[key]
+
+          console.log("The value of S: "+s);
+
+            var bits = s.split('/');
+            var host = bits[3]
+            var fileName = bits[4];
+
+            fs.rename(obj[key], './server/fragments/non-equals/'+host+'_'+fileName, function(){
+
+              console.log("MOVE FILE");
+
+            });
 
 
   }
 
-    count++;
 
+
+  }
 
 }
 
 const testThem = function(obj){
 
-      //returned = 0;
 
-      console.log("THE OBJ "+util.inspect(obj, false, null))
+     console.log("TEST THE OBJ "+util.inspect(obj, false, null));
 
-      let sizes = [];
+     let sizes = [];
 
-      let statsO = fs.statSync(obj.original);
-      sizes.origin_fileSizeInBytes = statsO.size*
+      for(var key in obj){
 
-      let statsA = fs.statSync(obj.hostA);
-      console.log(statsA);
-      sizes.push(statsA.size);
+        if (!obj.hasOwnProperty(key)) continue;
+        var frag = obj[key];
+          if(typeof(frag) === 'string'){
+            if(frag !== ''){
+                let stats = fs.statSync(frag, function(){
+                        sizes.push(stats.size);
+                });
+             } else {
 
-      let statsB = fs.statSync(obj.hostB);
-      sizes.push(statsB.size);
+               console.log("TEST ERROR");
+               moveThem(obj)
 
-      let statsC = fs.statSync(obj.hostC);
-      sizes.push(statsC.size);
+             }
+          }
+       }
+       equivalence(obj, sizes);
 
-      //let statsD = fs.statSync(obj.hostD);
-    //  sizes.hostD_fileSizeInBytes = statsD.size
-
-
-      console.log(util.inspect(sizes, false, null))
-
-      equivalence(obj, sizes); 
-
-
-
-
-
-
-
-
-}
-
-
-
+    }
 
 const downloadManifest = function(intName){
-
-  console.log("download manifest");
-
   request.get('http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/Manifest', function(err,res,body) {
-
-        console.log("first request");
-
-        parseString(body, function (err, result) {
-
-          //  console.log("string parsed: "+result);
-
-            let currentTimeCode = result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t;
-
-            timecodes.push(currentTimeCode);
-
-
-            downloadChunk(currentTimeCode, 'original');
-
-        });
+    parseString(body, function (err, result) {
+          let currentTimeCode = result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t;
+            timecodes.push(parseInt(currentTimeCode));
+                 downloadChunk(currentTimeCode, 'original');
+            });
 
      });
-
-
-}
+   }
 
 beginTest();

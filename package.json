@@ -17,6 +17,7 @@
     "fs": "0.0.1-security",
     "install": "^0.10.2",
     "lodash": "^4.17.4",
+    "node-watch": "^0.5.5",
     "npm": "^5.6.0",
     "path": "^0.12.7",
     "request": "^2.83.0",
