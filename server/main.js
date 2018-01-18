@@ -160,7 +160,11 @@ const cInterval = function(intervalName, type){
             downloadChunk(timecodes[0], 'hostA');
             downloadChunk(timecodes[0], 'hostB');
             downloadChunk(timecodes[0], 'hostC');
+<<<<<<< HEAD
           //  downloadChunk(timecodes[0], 'hostD');
+=======
+            downloadChunk(timecodes[0], 'hostD');
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
 
           }
@@ -196,15 +200,25 @@ const downloadChunk = function(time, interval){
 
   var url = 'http://'+host+'/z2skysportsmainevent/1301.isml/QualityLevels(4864960)/Fragments(video='+time+')';
 
+<<<<<<< HEAD
   //console.log("The URL: "+url);
 
   let options = {
+=======
+  console.log("The URL: "+url);
+
+  const options = {
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
     url: url,
     method: 'GET',
     headers: {
         'Accept': 'application/json',
         'Accept-Charset': 'utf-8',
+<<<<<<< HEAD
         'User-Agent': 'fragment-puller'
+=======
+        'User-Agent': 'my-reddit-client',
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
     }
 
@@ -212,11 +226,14 @@ const downloadChunk = function(time, interval){
 
 };
 
+<<<<<<< HEAD
 if(interval !== 'original'){
 
   options.headers.Host =  'origin7.skysportsmainevent.hss.skydvn.com';
 }
 
+=======
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
 var filename = './server/fragments/'+interval+'/chunk_'+time+'.mp4';
 
@@ -228,7 +245,11 @@ request(options, function(err, res, body){
 
   if(!filesToTest[time]){
 
+<<<<<<< HEAD
        filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'counter':0}
+=======
+       filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'hostD':'','counter':0}
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
   }
 
@@ -260,6 +281,7 @@ const equivalence = function(obj, sizes){
   function allEqual(arr) {
     for(var i = 0; i <arr.length-1; i++ ){
 
+<<<<<<< HEAD
           if(arr[i] != arr[i+1]){
             return false;
           }
@@ -269,6 +291,29 @@ const equivalence = function(obj, sizes){
 
   var EQ = allEqual(sizes);
 
+=======
+
+
+    for(var i = 0; i <arr.length-1; i++ ){
+
+      console.log("Val of i "+arr[i]);
+      console.log("Val of i+1 "+arr[i+1]);
+
+          if(arr[i] != arr[i+1]){
+            return false
+          }
+
+    }
+
+    return true;
+  }
+
+
+  var EQ = allEqual(sizes);
+
+
+
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
   if(EQ === true) {
     /*fs.unlink(obj.original, function(err){
         console.log("del Orig");
@@ -280,7 +325,16 @@ const equivalence = function(obj, sizes){
             fs.unlink(obj.hostC, function(err){
                 console.log("del C");
 
+<<<<<<< HEAD
             })
+=======
+    console.log("All the same");
+    fs.unlink(obj.original);
+    fs.unlink(obj.hostA);
+    fs.unlink(obj.hostB);
+    fs.unlink(obj.hostC);
+    fs.unlink(obj.hostD);
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
           })
 
@@ -308,9 +362,14 @@ const moveThem = function(obj){
 
           console.log("The value of S: "+s);
 
+<<<<<<< HEAD
             var bits = s.split('/');
             var host = bits[3]
             var fileName = bits[4];
+=======
+      let statsO = fs.statSync(obj.original);
+      sizes.origin_fileSizeInBytes = statsO.size;
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
             fs.rename(obj[key], './server/fragments/non-equals/'+host+'_'+fileName, function(){
 
@@ -322,6 +381,10 @@ const moveThem = function(obj){
   }
 
 
+<<<<<<< HEAD
+=======
+      equivalence(obj, sizes);
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
   }
 
@@ -357,11 +420,32 @@ const testThem = function(obj){
 
 const downloadManifest = function(intName){
   request.get('http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/Manifest', function(err,res,body) {
+<<<<<<< HEAD
     parseString(body, function (err, result) {
           let currentTimeCode = result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t;
             timecodes.push(parseInt(currentTimeCode));
                  downloadChunk(currentTimeCode, 'original');
             });
+=======
+
+        console.log("first request");
+
+        parseString(body, function (err, result) {
+
+          //  console.log("string parsed: "+result);
+
+            let currentTimeCode = result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t;
+
+            //var offSet = 20000000*53;
+
+            //timecodes.push(currentTimeCode+offSet);
+            timecodes.push(parseInt(currentTimeCode));
+
+
+            downloadChunk(currentTimeCode, 'original');
+
+        });
+>>>>>>> b785978e346fed56f737afef977d657b8729b558
 
      });
    }
