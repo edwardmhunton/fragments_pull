@@ -87,9 +87,8 @@ const cInterval = function(intervalName, type){
             downloadChunk(timecodes[0], 'hostA');
             downloadChunk(timecodes[0], 'hostB');
             downloadChunk(timecodes[0], 'hostC');
+            downloadChunk(timecodes[0], 'hostD');
 
-            OLDTIME = timecodes[0];
-            //downloadChunk(timecodes[0], 'hostD');
 
           }
         }, 2000);
@@ -121,7 +120,10 @@ const downloadChunk = function(time, interval){
       break;
 
   }
+
   var url = 'http://'+host+'/z2skysportsmainevent/1301.isml/QualityLevels(4864960)/Fragments(video='+time+')';
+
+  console.log("The URL: "+url);
 
   const options = {
     url: url,
@@ -130,13 +132,11 @@ const downloadChunk = function(time, interval){
         'Accept': 'application/json',
         'Accept-Charset': 'utf-8',
         'User-Agent': 'my-reddit-client',
-        'Host': 'origin7.skysportsmainevent.hss.skydvn.com'
 
     }
 
 };
 
-var holder = {'original':'', 'hostA':'', 'hostB':'', hostC:'', 'counter':0}
 
 var filename = './server/fragments/'+interval+'/chunk_'+time+'.mp4';
 
@@ -148,29 +148,25 @@ request(options, function(err, res, body){
 
   if(!filesToTest[time]){
 
-       filesToTest[time] = holder;
+       filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'hostD':'','counter':0}
 
   }
 
 
-
   filesToTest[time][interval] = filename;
+
 
   if(interval !== 'original'){
   if(filesToTest[time].counter < 3){
 
      filesToTest[time].counter++;
-     if(filesToTest[time].counter === 3){
+
+     if(filesToTest[time].counter === 3 && filesToTest[time].original){
          testThem(filesToTest[time]);
      }
 
 
    }
-        //if(filesToTest[time].original && filesToTest[time].hostA && filesToTest[time].hostB && filesToTest[time].hostC) {
-
-        //  testThem(filesToTest[time]);
-      //  }
-
 
   }
   //  }
@@ -187,26 +183,35 @@ const equivalence = function(obj, sizes){
 
   function allEqual(arr) {
 
-    !!arr.reduce(
-      function(a, b){
-        return (a === b) ? a : NaN;
-      });
+
+
+    for(var i = 0; i <arr.length-1; i++ ){
+
+      console.log("Val of i "+arr[i]);
+      console.log("Val of i+1 "+arr[i+1]);
+
+          if(arr[i] != arr[i+1]){
+            return false
+          }
 
     }
+
+    return true;
+  }
 
 
   var EQ = allEqual(sizes);
 
-  console.log("EQ  "+EQ);
+
 
   if(EQ === true) {
 
     console.log("All the same");
-    //fs.unlink(obj.original);
+    fs.unlink(obj.original);
     fs.unlink(obj.hostA);
     fs.unlink(obj.hostB);
     fs.unlink(obj.hostC);
-    //fs.unlink(obj.hostD);
+    fs.unlink(obj.hostD);
 
   } else {
 
@@ -229,7 +234,7 @@ const testThem = function(obj){
       let sizes = [];
 
       let statsO = fs.statSync(obj.original);
-      sizes.origin_fileSizeInBytes = statsO.size*
+      sizes.origin_fileSizeInBytes = statsO.size;
 
       let statsA = fs.statSync(obj.hostA);
       console.log(statsA);
@@ -247,7 +252,7 @@ const testThem = function(obj){
 
       console.log(util.inspect(sizes, false, null))
 
-      equivalence(obj, sizes); 
+      equivalence(obj, sizes);
 
 
 
@@ -275,7 +280,10 @@ const downloadManifest = function(intName){
 
             let currentTimeCode = result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t;
 
-            timecodes.push(currentTimeCode);
+            //var offSet = 20000000*53;
+
+            //timecodes.push(currentTimeCode+offSet);
+            timecodes.push(parseInt(currentTimeCode));
 
 
             downloadChunk(currentTimeCode, 'original');
