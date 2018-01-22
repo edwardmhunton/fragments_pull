@@ -74,15 +74,28 @@ console.log(fragpath);
 
 const watchFolder = function(path, name, array){
   const testNum = function(){
-    if(array.length > 20){
+    console.log("NAME "+name+" array: "+util.inspect(array, false, null));
+    if(name === 'original' && array.length >= 10){
+
+      console.log(array[0]+"   array 0")
+
+      //fs.unlinkSync(array[0]);
+
+     fs.unlink(array[0], function(){
+            array.shift();
+      })
+    } else if(array.length >= 20) {
+
+      //fs.unlinkSync(array[0]);
 
       fs.unlink(array[0], function(){
-            array.shift();
-      });
+              array.shift();
+        });
+
     }
   }
 
-var watch =  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('change', function(name) {
+var watch =  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('add', function(name) {
 
         array.push(name);
         testNum();
@@ -240,12 +253,17 @@ request(options, function(err, res, body){
 
 
 
-
-
-     if(filesToTest[time].counter === 3 && filesToTest[time].original){
-         testThem(filesToTest[time]);
-         delete filesToTest[time] 
-     }
+    /* console.log("time "+time);
+      console.log("FTT "+util.inspect(filesToTest[time], false, null));
+      if(filesToTest[time] === undefined){
+        console.log("ALL FTT "+util.inspect(filesToTest, false, null));
+      }*/
+        if(filesToTest[time] !== undefined){
+         if(filesToTest[time].counter === 3 && filesToTest[time].original){
+             testThem(filesToTest[time]);
+             delete filesToTest[time]
+         }
+   }
 
 
 
@@ -315,15 +333,24 @@ const moveThem = function(obj){
 const whatQ = function(tt){
   console.log(tt);
 
-  if(tt < 2 && Q_index+1 < bitRates.length-1){
+if(tt < 1.75 || tt > 2.25){ // only change if sub optimal
+
+ if(tt < 1.75 && Q_index+1 < bitRates.length-1){
+   console.log("jump up");
     Q_index++;
-  } else if(Q_index-1 >= 0) {
-    Q_index--;
-  }
+ } else if(tt > 2.25 && Q_index-1 >= 0) {
+     console.log("jump down");
+     Q_index--;
+   }
+
+ }
 
 }
 
 const testThem = function(obj){
+
+  console.log("THE OBJ sent to test "+util.inspect(obj, false, null));
+
 
      let sizes = [];
      whatQ(obj.totaltime);
