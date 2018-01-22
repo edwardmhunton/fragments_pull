@@ -23,6 +23,8 @@ const server = express();
 
 import download from 'download-file';
 
+import chokidar from 'chokidar';
+
 import path from 'path';
 
 

@@ -23,98 +23,81 @@ import download from 'download-file';
 
 let timecodes = [];
 
-let count = 0;
+import path from 'path';
 
-let returned = 0;
+import chokidar from 'chokidar';
 
-let originals = [];
+var bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
+
+var Q_index = 0
 
 var filesToTest = {};
 
+var fragpath = path.join(__dirname + '/fragments/');
 
-var OLDTIME = '';
+var folderNames = ['hostA','hostB','hostC','hostD', 'original'];
+
+var watchers = [];
 
 
 
 
+const createFolders = function(fragpath, folderNames, callback){
+
+console.log(fragpath);
+
+  if(!fs.existsSync(fragpath)){
+    fs.mkdir(fragpath, function(){
+      folderNames.map((dir, i, folderNames) => {
+                  var folders = [];
+                  if(!fs.existsSync(fragpath+dir)){
+                    fs.mkdir(fragpath+dir, function(){
+                      var a = [];
+                      callback(fragpath+dir, dir, a);
+                    });
+
+                  }
+        });
+
+
+    })
+
+} else {
+  folderNames.map((dir, i, folderNames) => {
+    var a = [];
+    callback(fragpath+dir, dir, a);
+  });
+}
+
+
+}
+
+const watchFolder = function(path, name, array){
+  const testNum = function(){
+    if(array.length > 20){
+
+      fs.unlink(array[0], function(){
+            array.shift();
+      });
+    }
+  }
+
+var watch =  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('change', function(name) {
+
+        array.push(name);
+        testNum();
+      })
+
+}
 
 const beginTest = function(){
 
     console.log("begin the test");
 
-    watchFolders();
+    createFolders(fragpath, folderNames, watchFolder);
 
      manifestInterval();
      createTimeoutForIntervalB();
-}
-
-
-const watchFolders = function(){
-  var origCount = [];
-  var ACount = [];
-  var BCount = [];
-  var CCount = [];
-
-  fs.watch('./server/fragments/hostA', { recursive: false }, function(evt, name) {
-
-      ACount.push(name);
-      if(ACount.length > 10){
-
-        fs.unlink('./server/fragments/hostA/'+ACount[0], function(){
-              ACount.shift();
-        });
-      }
-  });
-  fs.watch('./server/fragments/hostB', { recursive: false }, function(evt, name) {
-    BCount.push(name);
-
-    if(BCount.length > 10){
-
-      fs.unlink('./server/fragments/hostB/'+BCount[0], function(){
-            BCount.shift();
-      });
-
-
-    }
-  });
-  fs.watch('./server/fragments/hostC', { recursive: false }, function(evt, name) {
-    CCount.push(name);
-    if(CCount.length > 10){
-
-      fs.unlink('./server/fragments/hostC/'+CCount[0], function(){
-             CCount.shift();
-      });
-
-
-    }
-  });
-  fs.watch('./server/fragments/hostD', { recursive: false }, function(evt, name) {
-    DCount.push(name);
-    if(DCount.length > 10){
-
-      fs.unlink('./server/fragments/hostD/'+DCount[0], function(){
-             DCount.shift();
-      });
-
-
-    }
-  });
-
-  fs.watch('./server/fragments/original', { recursive: false }, function(evt, name) {
-    origCount.push(name);
-  ///  console.log("OG COUNT: "+origCount)
-  //  console.log("LEN "+origCount.length)
-    if(origCount.length > 20){
-
-      fs.unlink('./server/fragments/original/'+origCount[0], function(){
-      //  console.log("unlink");
-             origCount.shift();
-      });
-
-
-    }
-  });
-
 }
 
 const createTimeoutForIntervalB = function(){
@@ -141,9 +124,7 @@ const manifestInterval = function() {
 
 const cInterval = function(intervalName, type){
 
-
-
-      setInterval(function(){
+  setInterval(function(){
 
             if(type === 'manifest'){
 
@@ -194,11 +175,13 @@ const downloadChunk = function(time, interval){
 
   }
 
-  var url = 'http://'+host+'/z2skysportsmainevent/1301.isml/QualityLevels(4864960)/Fragments(video='+time+')';
+  var url = 'http://'+host+'/z2skysportsmainevent/1301.isml/QualityLevels('+bitRates[Q_index]+'])/Fragments(video='+time+')';
 
-  //console.log("The URL: "+url);
+  console.log(bitRates[Q_index]);
+  console.log(Q_index);
 
   let options = {
+    time: true,
     url: url,
     method: 'GET',
     headers: {
@@ -222,18 +205,18 @@ var filename = './server/fragments/'+interval+'/chunk_'+time+'.mp4';
 
 request(options, function(err, res, body){
 
-}).pipe(fs.createWriteStream(filename)).on('close', function(){
-
-
 
   if(!filesToTest[time]){
 
-       filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'counter':0}
+       filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'counter':0, 'totaltime':0}
 
   }
 
 
   filesToTest[time][interval] = filename;
+
+  filesToTest[time].totaltime+=(res.timings.end - res.timings.response); // the total of all request for a segment need to happen inside 2seconds
+  //console.log(res.timings.end - res.timings.response);
 
 
   if(interval !== 'original'){
@@ -241,14 +224,33 @@ request(options, function(err, res, body){
 
      filesToTest[time].counter++;
 
+   }
+
+ }
+
+
+
+
+}).pipe(fs.createWriteStream(filename)).on('close', function(){
+
+
+
+  //console.log("TEST THE OBJ "+util.inspect(filesToTest, false, null));
+
+
+
+
+
+
      if(filesToTest[time].counter === 3 && filesToTest[time].original){
          testThem(filesToTest[time]);
+         delete filesToTest[time] 
      }
 
 
-   }
 
-  }
+
+  //}
 
 });
 
@@ -310,12 +312,22 @@ const moveThem = function(obj){
 
 }
 
+const whatQ = function(tt){
+  console.log(tt);
+
+  if(tt < 2 && Q_index+1 < bitRates.length-1){
+    Q_index++;
+  } else if(Q_index-1 >= 0) {
+    Q_index--;
+  }
+
+}
+
 const testThem = function(obj){
 
-
-     console.log("TEST THE OBJ "+util.inspect(obj, false, null));
-
      let sizes = [];
+     whatQ(obj.totaltime);
+
 
       for(var key in obj){
 
@@ -341,6 +353,8 @@ const testThem = function(obj){
 const downloadManifest = function(intName){
   request.get('http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/Manifest', function(err,res,body) {
     parseString(body, function (err, result) {
+    //  console.log("MANIFEST "+util.inspect(result, false, null));
+
           let currentTimeCode = result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t;
             timecodes.push(parseInt(currentTimeCode));
                  downloadChunk(currentTimeCode, 'original');
