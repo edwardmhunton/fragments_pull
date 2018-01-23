@@ -43,9 +43,12 @@ const createFolder = function(path, name, callback) {
 
 const createChunkFolders = function(fragpath, folderNames, callback){
 
+  var f = chunkFolders;
+  f.push('original');
+
   if(!fs.existsSync(fragpath)){
     fs.mkdir(fragpath, function(){
-      folderNames.map((dir, i, folderNames) => {
+      f.map((dir, i, f) => {
                   var folders = [];
                   if(!fs.existsSync(fragpath+dir)){
                     fs.mkdir(fragpath+dir, function(){
@@ -73,7 +76,7 @@ const watchFolder = function(path, name, array){
             array.shift();
       })
     }
-    if(name === 'original' && array.length >= 40){
+    if(name === 'original' && array.length >= 40) {
       remove();
     } else if(array.length >= 30) {
       remove();
@@ -92,9 +95,15 @@ const watchFolder = function(path, name, array){
 
 
 const beginTest = function(){
+
   createChunkFolders(fragpath, chunkFolders, watchFolder);
-  createFolder(fragpath, 'non-equals', function(){});
-  createFolder(fragpath, 'original', afterFolders);
+  createFolder(fragpath, 'non-equals', afterFolders);
+  createFolder(fragpath, 'logs', afterLogs);
+
+}
+
+const afterLogs = function(){
+
 
 }
 
