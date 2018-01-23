@@ -1,11 +1,4 @@
-import http from 'http';
-import xml2js from 'xml2js';
-import eyes from 'eyes';
-//import http from 'http';
 import fs from 'fs';
-import express from 'express';
-
-import watch from 'node-watch';
 
 import util from 'util';
 
@@ -29,16 +22,26 @@ var filesToTest = {};
 
 var fragpath = path.join(__dirname + '/fragments/');
 
-var folderNames = ['hostA','hostB','hostC','hostD', 'original','non-equals'];
+//var folderNames = ['hostA','hostB','hostC','hostD', 'original','non-equals'];
+
+var chunkFolders = ['hostA','hostB','hostC','hostD'];
 
 var chunkOffSet = 53; // from oldest chunk to live
 
-var intervalB;
+var intervalB, intervalA;
+
+const createFolder = function(path, name, callback) {
+
+  console.log(path+name);
+
+    fs.mkdir(path+name, function(){
+          callback();
+    });
+
+}
 
 
-
-
-const createFolders = function(fragpath, folderNames, callback){
+const createChunkFolders = function(fragpath, folderNames, callback){
 
   if(!fs.existsSync(fragpath)){
     fs.mkdir(fragpath, function(){
@@ -84,24 +87,36 @@ const watchFolder = function(path, name, array){
 
 }
 
+
+
+
+
 const beginTest = function(){
-  createFolders(fragpath, folderNames, watchFolder);
-  manifestInterval(createTimeoutForIntervalB);
+  createChunkFolders(fragpath, chunkFolders, watchFolder);
+  createFolder(fragpath, 'non-equals', function(){});
+  createFolder(fragpath, 'original', afterFolders);
+
 }
 
 const createTimeoutForIntervalB = function(){
   if(!intervalB){
-    console.log("int B created");
       intervalB = setTimeout(function(){
         chunkCheckInterval();
       }, 60000); // one minute later pull the fragments from the 4 hosts
   }
 }
 
+const afterFolders = function(){
+  console.log("after folders");
+  manifestInterval(createTimeoutForIntervalB);
+}
+
 const manifestInterval = function(callback) {
-  setInterval(function(){
-    downloadManifest(callback);
-  }, 2000);
+    if(!intervalA){
+      intervalA = setInterval(function(){
+        downloadManifest(callback);
+      }, 2000);
+}
 }
 
 const chunkCheckInterval = function(){
@@ -113,7 +128,6 @@ const chunkCheckInterval = function(){
             downloadChunk(timecodes[0], 'hostC');
             downloadChunk(timecodes[0], 'hostD');
         }, 2000);
-
 }
 
 const whichHost = function(int) {
@@ -169,11 +183,11 @@ const buildFileName = function(p, i, q, t){
   return p+i+'/chunk_'+q+'_'+t+'.mp4';
 }
 
-const requestCallback = function(time, callback){
-  if(filesToTest[time] !== undefined){
-       if(filesToTest[time].counter === 4 && filesToTest[time].original){
-           callback(filesToTest[time]);
-           delete filesToTest[time]
+const requestCallback = function(subject, callback){
+  if(subject !== undefined){
+       if(subject.counter === chunkFolders.length && subject.original){
+           callback(subject);
+           //delete subject;
        }
  }
 }
@@ -192,7 +206,7 @@ const performRequest = function(options, time, interval, filename, callback, cal
             filesToTest[time].counter++;
           }
       }}).pipe(fs.createWriteStream(filename)).on('close', function(){
-        callback(time, callback2)
+        callback(filesToTest[time], callback2)
       });
 
 }
@@ -218,7 +232,7 @@ const equivalence = function(obj, sizes){
   function allEqual(arr) {
     for(var i = 0; i <arr.length-1; i++ ){
 
-          if(arr[i] != arr[i+1]){
+          if(arr[i] !== arr[i+1]){
             return false;
           }
     }
@@ -231,16 +245,18 @@ const equivalence = function(obj, sizes){
 
     console.log("THEY ARE ALL EQUAL");
 
-  return true;
+    return true;
 
-    } else {
+  } else {
 
-   return false;
+    console.log("THEY ARE NOT ALL EQUAL");
 
-      console.log("THEY ARE NOT ALL EQUAL");
+    return false;
 
-    }
+
+
   }
+}
 
 const moveThem = function(obj){
 
@@ -252,29 +268,20 @@ const moveThem = function(obj){
 
   for(var key in obj){
 
-        if(obj.hasOwnProperty(key)){
+        if(obj.hasOwnProperty(key) && obj[key] !== ''  ){
 
           var s = obj[key]
 
           console.log("The value of S: "+s);
 
-            var bits = s.split('/');
-            var host = bits[7];
-            var fileName = bits[8];
-
-            fs.createReadStream(obj[key]).pipe(fs.createWriteStream('./server/fragments/non-equals/'+host+'_'+fileName));
-
-            //fs.rename(obj[key], './server/fragments/non-equals/'+host+'_'+fileName, function(){
-
-            //  console.log("MOVE FILE");
-
-            //});
+          var bits = s.split('/');
+          var host = bits[7];
+          var fileName = bits[8];
 
 
-  }
+          fs.createReadStream(obj[key]).pipe(fs.createWriteStream('./server/fragments/non-equals/'+host+'_'+fileName));
 
-
-
+        }
   }
 
 }
@@ -282,31 +289,24 @@ const moveThem = function(obj){
 const whatQ = function(tt){
   console.log(tt);
 
-if(tt < 1.75 || tt > 2.25){ // only change if sub optimal
+  if(tt < 1.75 || tt > 2.25){ // only change if sub optimal
 
- if(tt < 1.75 && Q_index+1 < bitRates.length-1){
-   console.log("jump up");
-    Q_index++;
- } else if(tt > 2.25 && Q_index-1 >= 0) {
-     console.log("jump down");
-     Q_index--;
+   if(tt < 1.75 && Q_index+1 < bitRates.length-1){
+     console.log("jump up");
+      Q_index++;
+   } else if(tt > 2.25 && Q_index-1 >= 0) {
+       console.log("jump down");
+       Q_index--;
+     }
+
    }
-
- }
 
 }
 
 const testThem = function(obj){
+  let sizes = [];
 
-  //console.log("THE OBJ sent to test "+util.inspect(obj, false, null));
-
-
-     let sizes = [];
-
-    // whatQ(obj.totaltime);
-
-
-      for(var key in obj){
+  for(var key in obj){
 
         if (!obj.hasOwnProperty(key)) continue;
         var frag = obj[key];
@@ -318,7 +318,7 @@ const testThem = function(obj){
              } else {
 
                console.log("TEST ERROR");
-               moveThem(obj)
+               moveThem(obj);
 
              }
           }
