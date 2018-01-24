@@ -21,7 +21,7 @@ import dateFormat from 'dateFormat';
 
 
 
-let timecodes = [];
+let timecodes = []; // rea from the hss manifests
 
 var bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
 
@@ -45,7 +45,7 @@ var filesToTest = {};
 
 var fragpath = path.join(__dirname + '/fragments/');
 
-var mainIntervalLength = 1000;
+var mainIntervalLength = 60000;
 
 
 
@@ -80,22 +80,32 @@ const createFolder = function(path, name, callback) {
 
 const createChunkFolders = function(fragpath, folderNames, callback){
 
-  var f = chunkFolders;
-  f.push('original');
+  /*f.map((dir, i, f) => {
+              var folders = [];
+              if(!fs.existsSync(fragpath+dir)){
+                fs.mkdir(fragpath+dir, function(){
+                  var a = [];
+                  callback(fragpath+dir, dir, a);
+                });
+
+              }
+    }); */
+
+  //var f = chunkFolders;
+  //f.push('original');
 
   if(!fs.existsSync(fragpath)){
     fs.mkdir(fragpath, function(){
-      f.map((dir, i, f) => {
-                  var folders = [];
-                  if(!fs.existsSync(fragpath+dir)){
-                    fs.mkdir(fragpath+dir, function(){
-                      var a = [];
-                      callback(fragpath+dir, dir, a);
-                    });
-
-                  }
-        });
-      })
+      for (var key in hosts) {
+        if (!hosts.hasOwnProperty(key)) continue;
+        if(!fs.existsSync(fragpath+key)){
+                fs.mkdir(fragpath+key, function(){
+                  var a = [];
+                  callback(fragpath+key, key, a);
+                });
+              }
+            }
+          });
     } else {
   folderNames.map((dir, i, folderNames) => {
     var a = [];
@@ -115,7 +125,7 @@ const watchFolder = function(path, name, array){
     }
     if(name === 'original' && array.length >= 40) {
       remove();
-    } else if(array.length >= 30) {
+    } else if(array.length >= 40) {
       remove();
     }
   }
@@ -142,7 +152,7 @@ const log = function(str){
 const beginTest = function(){
 
     deleteFolder(fragpath, function(){
-    createChunkFolders(fragpath, chunkFolders, watchFolder);
+    createChunkFolders(fragpath, hosts, watchFolder);
     createFolder(fragpath, 'non-equals', afterFolders);
     createFolder(fragpath, 'logs', createLogFile);
 
@@ -419,12 +429,12 @@ const testThem = function(obj){
       var str = 'TEST: '+D+' - '+bits[bits.length-1];
 
       if(EQ === false){
-          str+' - tested UNEQUAL';
+          str+=' - tested UNEQUAL';
           console.log(str);
           log(str);
           moveThem(obj);
       } else {
-          str+' - tested EQUAL';
+          str+=' - tested EQUAL';
           console.log(str);
           log(str);
       }
