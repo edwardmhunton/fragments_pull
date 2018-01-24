@@ -17,8 +17,37 @@ import rimraf from 'rimraf';
 import dateFormat from 'dateFormat';
 
 
+const streamParse = function(){
+
+  let streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
+
+  let streamObj = {};
+
+  var res = streamString.substring(0, 7);
+
+  if(res === 'http://'){
+    streamString = streamString.substring(7, streamString.length);
+  }
+
+  let subpaths = streamString.split('/');
+  streamObj.host = subpaths[0];
+  streamObj.dir1 = subpaths[1];
+  streamObj.dir2 = subpaths[2];
+
+  return streamObj;
+
+}
 
 
+
+const streamObj = streamParse();
+
+
+
+
+/* process.argv.forEach(function (val, index, array) {
+  console.log(index + ': ' + val);
+});*/
 
 
 let timecodes = []; // rea from the hss manifests
@@ -78,26 +107,6 @@ const createFolder = function(path, name, callback) {
 }
 
 
-<<<<<<< HEAD
-const createChunkFolders = function(fragpath, folderNames, callback){
-
-  var f = chunkFolders;
-  f.push('original');
-
-  if(!fs.existsSync(fragpath)){
-    fs.mkdir(fragpath, function(){
-      f.map((dir, i, f) => {
-                  var folders = [];
-                  if(!fs.existsSync(fragpath+dir)){
-                    fs.mkdir(fragpath+dir, function(){
-                      var a = [];
-                      callback(fragpath+dir, dir, a);
-                    });
-
-                  }
-        });
-      })
-=======
 const createChunkFolders = function(fragpath, hosts, callback){
   if(!fs.existsSync(fragpath)){
     fs.mkdir(fragpath, function(){
@@ -111,7 +120,6 @@ const createChunkFolders = function(fragpath, hosts, callback){
               }
             }
           });
->>>>>>> feature/logs
     } else {
   folderNames.map((dir, i, folderNames) => {
     var a = [];
@@ -157,15 +165,6 @@ const log = function(str){
 
 const beginTest = function(){
 
-<<<<<<< HEAD
-  createChunkFolders(fragpath, chunkFolders, watchFolder);
-  createFolder(fragpath, 'non-equals', afterFolders);
-  createFolder(fragpath, 'logs', afterLogs);
-
-}
-
-const afterLogs = function(){
-=======
     deleteFolder(fragpath, function(){
     createChunkFolders(fragpath, hosts, watchFolder);
     createFolder(fragpath, 'non-equals', afterFolders);
@@ -185,7 +184,6 @@ const afterLogs = function(){
   })
 
 
->>>>>>> feature/logs
 
 
 }
@@ -210,13 +208,13 @@ const createLogFile = function(){
 
 
 const afterFolders = function(){
-  manifestInterval(createTimeoutForIntervalB);
+  manifestInterval(createTimeoutForIntervalB, streamObj);
 }
 
-const manifestInterval = function(callback) {
+const manifestInterval = function(callback, stream) {
     if(!intervalA){
       intervalA = setInterval(function(){
-        downloadManifest(callback);
+        downloadManifest(callback, stream);
       }, 2000);
 }
 }
@@ -256,7 +254,7 @@ const chunkCheckInterval = function(){
   }
 }*/
 
-const getOptions = function(interval, url){
+const getOptions = function(streamObj, interval, url){
 
   let options = {
       time: true,
@@ -270,15 +268,23 @@ const getOptions = function(interval, url){
       };
 
   if(interval !== 'original'){
-    options.headers.Host =  'origin7.skysportsmainevent.hss.skydvn.com';
+    options.headers.Host =  streamObj.host;
   }
 
   return options;
 
 }
 
-const buildUrl = function(h, q, t){
-    return 'http://'+h+'/z2skysportsmainevent/1301.isml/QualityLevels('+q+')/Fragments(video='+t+')';
+const buildBaseUrl = function(streamObj){
+  return 'http://'+streamObj.host+'/'+streamObj.dir1+'/'+streamObj.dir2+'.isml';
+}
+
+const buildManifestUUrl = function(streamObj){
+  return buildBaseUrl(streamObj)+'/Manifest';
+}
+
+const buildChunkUrl = function(streamObj, q, t){
+    return buildBaseUrl(streamObj)+'/QualityLevels('+q+')/Fragments(video='+t+')';
 }
 
 const buildFileName = function(p, i, q, t){
@@ -328,7 +334,7 @@ const downloadChunk = function(time, interval){
 
 
 let host = hosts[interval].ip;
-let url = buildUrl(host, bitRates[Q_index], time);
+let url = buildChunkUrl(streamObj, bitRates[Q_index], time);
 let options = getOptions(interval, url);
 let fileName = buildFileName(fragpath, interval, bitRates[Q_index], time);
 
@@ -388,6 +394,8 @@ const moveThem = function(obj){
           var fileName = bits[8];
 
 
+
+
           fs.createReadStream(obj[key]).pipe(fs.createWriteStream('./server/fragments/non-equals/'+host+'_'+fileName));
 
         }
@@ -421,6 +429,9 @@ const testThem = function(obj){
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
 
   console.log("test them"+obj);
+
+  console.log(__dirname);
+  console.log(fragpath);
 
   let sizes = [];
 
@@ -463,8 +474,15 @@ const testThem = function(obj){
 
     }
 
-const downloadManifest = function(callback){
-  request.get('http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/Manifest', function(err,res,body) {
+
+
+const downloadManifest = function(callback, streamObj){
+
+   var url = buildManifestUUrl(streamObj);
+
+  console.log(url);
+
+  request.get(url, function(err,res,body) {
     parseString(body, function (err, result) {
 
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
