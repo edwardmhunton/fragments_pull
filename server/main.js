@@ -10,11 +10,34 @@ import path from 'path';
 
 import chokidar from 'chokidar';
 
+import winston from 'winston';
+
+import rimraf from 'rimraf';
+
+import dateFormat from 'dateFormat';
 
 
-let timecodes = [];
+
+
+
+
+let timecodes = []; // rea from the hss manifests
 
 var bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
+
+var hosts = {
+  'original':{
+    'ip': 'skysportsmainevent-go-hss.ak-cdn.skydvn.com'
+  },'hostA':{
+    'ip': '90.211.176.20'
+  },'hostB':{
+    'ip': '90.211.176.148'
+  },'hostC':{
+    'ip': '2.122.212.14'
+  },'hostD':{
+    'ip': '2.122.212.142'
+  }
+}
 
 var Q_index = 6;
 
@@ -22,13 +45,27 @@ var filesToTest = {};
 
 var fragpath = path.join(__dirname + '/fragments/');
 
+var mainIntervalLength = 60000;
+
+
+
 //var folderNames = ['hostA','hostB','hostC','hostD', 'original','non-equals'];
 
-var chunkFolders = ['hostA','hostB','hostC','hostD'];
+//var chunkFolders = ['hostA','hostB','hostC','hostD'];
 
 var chunkOffSet = 53; // from oldest chunk to live
 
 var intervalB, intervalA;
+
+const debug = require('debug')('my-namespace')
+const name = 'my-app'
+
+const deleteFolder = function(path, callback){
+  rimraf(path, function(){
+    callback();
+  });
+};
+
 
 const createFolder = function(path, name, callback) {
 
@@ -41,6 +78,7 @@ const createFolder = function(path, name, callback) {
 }
 
 
+<<<<<<< HEAD
 const createChunkFolders = function(fragpath, folderNames, callback){
 
   var f = chunkFolders;
@@ -59,6 +97,21 @@ const createChunkFolders = function(fragpath, folderNames, callback){
                   }
         });
       })
+=======
+const createChunkFolders = function(fragpath, hosts, callback){
+  if(!fs.existsSync(fragpath)){
+    fs.mkdir(fragpath, function(){
+      for (var key in hosts) {
+        if (!hosts.hasOwnProperty(key)) continue;
+        if(!fs.existsSync(fragpath+key)){
+                fs.mkdir(fragpath+key, function(){
+                  var a = [];
+                  callback(fragpath+key, key, a);
+                });
+              }
+            }
+          });
+>>>>>>> feature/logs
     } else {
   folderNames.map((dir, i, folderNames) => {
     var a = [];
@@ -78,7 +131,7 @@ const watchFolder = function(path, name, array){
     }
     if(name === 'original' && array.length >= 40) {
       remove();
-    } else if(array.length >= 30) {
+    } else if(array.length >= 40) {
       remove();
     }
   }
@@ -90,12 +143,21 @@ const watchFolder = function(path, name, array){
 
 }
 
+const log = function(str){
+
+  var stream = fs.createWriteStream(__dirname+'/fragments/logs/logFile.txt', {flags:'a'});
+  stream.write(str + "\n");
+  stream.end();
+
+}
+
 
 
 
 
 const beginTest = function(){
 
+<<<<<<< HEAD
   createChunkFolders(fragpath, chunkFolders, watchFolder);
   createFolder(fragpath, 'non-equals', afterFolders);
   createFolder(fragpath, 'logs', afterLogs);
@@ -103,6 +165,27 @@ const beginTest = function(){
 }
 
 const afterLogs = function(){
+=======
+    deleteFolder(fragpath, function(){
+    createChunkFolders(fragpath, hosts, watchFolder);
+    createFolder(fragpath, 'non-equals', afterFolders);
+    createFolder(fragpath, 'logs', createLogFile);
+
+    /*var str = 'HOST IPS \n';
+
+    for(var i in hosts){
+      str+=hosts[i]+', ';
+    }
+
+    console.log(str);
+
+    log(str);*/
+
+
+  })
+
+
+>>>>>>> feature/logs
 
 
 }
@@ -111,12 +194,22 @@ const createTimeoutForIntervalB = function(){
   if(!intervalB){
       intervalB = setTimeout(function(){
         chunkCheckInterval();
-      }, 60000); // one minute later pull the fragments from the 4 hosts
+      }, mainIntervalLength); // one minute later pull the fragments from the 4 hosts
   }
 }
 
+const createLogFile = function(){
+  //console.log(__dirname+'/fragments/logs/logFile.txt');
+  fs.writeFile(__dirname+'/fragments/logs/logFile.txt', 'TEST STARTED: '+new Date()+'\n', (err) => {
+    if (err) {
+      throw err;
+    }
+    console.log("log file created");
+  });
+}
+
+
 const afterFolders = function(){
-  console.log("after folders");
   manifestInterval(createTimeoutForIntervalB);
 }
 
@@ -139,7 +232,7 @@ const chunkCheckInterval = function(){
         }, 2000);
 }
 
-const whichHost = function(int) {
+/*const whichHost = function(int) {
   var host = "";
 
   switch(int) {
@@ -148,20 +241,20 @@ const whichHost = function(int) {
        return 'skysportsmainevent-go-hss.ak-cdn.skydvn.com';
       break;
     case 'hostA':
-      return '90.211.176.20';
+      return hostIps[0];
       break;
     case 'hostB':
-      return '90.211.176.148';
+      return hostIps[1];
       break;
     case 'hostC':
-      return '2.122.212.14';
+      return hostIps[2];
       break;
     case 'hostD':
-      return '2.122.212.142';
+      return hostIps[3];
       break;
 
   }
-}
+}*/
 
 const getOptions = function(interval, url){
 
@@ -192,47 +285,54 @@ const buildFileName = function(p, i, q, t){
   return p+i+'/chunk_'+q+'_'+t+'.mp4';
 }
 
-const requestCallback = function(subject, callback){
-  if(subject !== undefined){
-       if(subject.counter === chunkFolders.length && subject.original){
-           callback(subject);
-           //delete subject;
-       }
- }
-}
 
-const performRequest = function(options, time, interval, filename, callback, callback2) {
+const performRequest = function(options, time, interval, filename, callback, _hosts) {
+
   request(options, function(err, res, body){
+
+  // console.log("FTOT"+time);
+  //  console.log("FTOT "+util.inspect(_filesToTest, false, null));
+
     if(!filesToTest[time]){
-      filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'hostD':'', 'counter':0}
+      filesToTest[time] = _hosts;
+      console.log("FTOT "+util.inspect(filesToTest, false, null));
+
+      filesToTest[time].counter = 0;
     }
-
-    filesToTest[time][interval] = filename;
-
+    filesToTest[time][interval].chunkPath = filename;
     if(interval !== 'original') {
       //filesToTest[time].totaltime+=(res.timings.end - res.timings.response); // the total of all request for a segment need to happen inside 2seconds
           if(filesToTest[time].counter < 4){
             filesToTest[time].counter++;
           }
-      }}).pipe(fs.createWriteStream(filename)).on('close', function(){
-        callback(filesToTest[time], callback2)
-      });
+      }
+    }).pipe(fs.createWriteStream(filename)).on('close', function(){
+      //console.log(filesToTest[time].counter);
+      //console.log(Object.keys(hosts).length);
+      if(filesToTest[time]){
+        if(filesToTest[time].counter === Object.keys(hosts).length-2 && filesToTest[time].original){
+            callback(filesToTest[time]);
+            delete filesToTest[time];
+        }
+      }
+
+    });
+
+
 
 }
 
 const downloadChunk = function(time, interval){
 
+  console.log("interval "+interval);
 
-let host = whichHost(interval);
+
+let host = hosts[interval].ip;
 let url = buildUrl(host, bitRates[Q_index], time);
 let options = getOptions(interval, url);
 let fileName = buildFileName(fragpath, interval, bitRates[Q_index], time);
 
-performRequest(options, time, interval, fileName, requestCallback, testThem);
-
-
-
-
+performRequest(options, time, interval, fileName, testThem, hosts);
 
 }
 
@@ -272,8 +372,8 @@ const moveThem = function(obj){
   delete obj['counter'];
   delete obj['totaltime'];
 
-  console.log("MOVE SOME FILES SOMWHERE");
-  console.log("THE OBJ "+util.inspect(obj, false, null));
+//  console.log("MOVE SOME FILES SOMWHERE");
+  //g
 
   for(var key in obj){
 
@@ -281,7 +381,7 @@ const moveThem = function(obj){
 
           var s = obj[key]
 
-          console.log("The value of S: "+s);
+        //console.log("The value of S: "+s);
 
           var bits = s.split('/');
           var host = bits[7];
@@ -296,7 +396,7 @@ const moveThem = function(obj){
 }
 
 const whatQ = function(tt){
-  console.log(tt);
+  //console.log(tt);
 
   if(tt < 1.75 || tt > 2.25){ // only change if sub optimal
 
@@ -313,12 +413,21 @@ const whatQ = function(tt){
 }
 
 const testThem = function(obj){
+
+
+
+  var now = new Date();
+
+  var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
+
+  console.log("test them"+obj);
+
   let sizes = [];
 
   for(var key in obj){
 
         if (!obj.hasOwnProperty(key)) continue;
-        var frag = obj[key];
+        var frag = obj[key].chunkPath;
           if(typeof(frag) === 'string'){
             if(frag !== ''){
                 let stats = fs.statSync(frag, function(){
@@ -326,15 +435,30 @@ const testThem = function(obj){
                 });
              } else {
 
-               console.log("TEST ERROR");
-               moveThem(obj);
+               //console.log("TEST ERROR");
+                var bits = obj.original.chunkPath.split('/');
+                log('TEST: '+D+' - '+bits[bits.length-1]+' - test ERRORED');
+                moveThem(obj);
+
+
 
              }
           }
        }
       let EQ = equivalence(obj, sizes);
+
+      var bits = obj.original.chunkPath.split('/');
+      var str = 'TEST: '+D+' - '+bits[bits.length-1];
+
       if(EQ === false){
-         moveThem(obj)
+          str+=' - tested UNEQUAL';
+          console.log(str);
+          log(str);
+          moveThem(obj);
+      } else {
+          str+=' - tested EQUAL';
+          console.log(str);
+          log(str);
       }
 
     }
