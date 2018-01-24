@@ -51,7 +51,7 @@ var mainIntervalLength = 60000;
 
 //var folderNames = ['hostA','hostB','hostC','hostD', 'original','non-equals'];
 
-var chunkFolders = ['hostA','hostB','hostC','hostD'];
+//var chunkFolders = ['hostA','hostB','hostC','hostD'];
 
 var chunkOffSet = 53; // from oldest chunk to live
 
@@ -78,22 +78,7 @@ const createFolder = function(path, name, callback) {
 }
 
 
-const createChunkFolders = function(fragpath, folderNames, callback){
-
-  /*f.map((dir, i, f) => {
-              var folders = [];
-              if(!fs.existsSync(fragpath+dir)){
-                fs.mkdir(fragpath+dir, function(){
-                  var a = [];
-                  callback(fragpath+dir, dir, a);
-                });
-
-              }
-    }); */
-
-  //var f = chunkFolders;
-  //f.push('original');
-
+const createChunkFolders = function(fragpath, hosts, callback){
   if(!fs.existsSync(fragpath)){
     fs.mkdir(fragpath, function(){
       for (var key in hosts) {
@@ -270,14 +255,20 @@ const buildFileName = function(p, i, q, t){
 }
 
 
-const performRequest = function(options, time, interval, filename, callback) {
+const performRequest = function(options, time, interval, filename, callback, _hosts) {
+
   request(options, function(err, res, body){
+
+  // console.log("FTOT"+time);
+  //  console.log("FTOT "+util.inspect(_filesToTest, false, null));
+
     if(!filesToTest[time]){
-      filesToTest[time] = {'original':'', 'hostA':'', 'hostB':'', 'hostC':'', 'hostD':'', 'counter':0}
+      filesToTest[time] = _hosts;
+      console.log("FTOT "+util.inspect(filesToTest, false, null));
+
+      filesToTest[time].counter = 0;
     }
-
-    filesToTest[time][interval] = filename;
-
+    filesToTest[time][interval].chunkPath = filename;
     if(interval !== 'original') {
       //filesToTest[time].totaltime+=(res.timings.end - res.timings.response); // the total of all request for a segment need to happen inside 2seconds
           if(filesToTest[time].counter < 4){
@@ -285,16 +276,18 @@ const performRequest = function(options, time, interval, filename, callback) {
           }
       }
     }).pipe(fs.createWriteStream(filename)).on('close', function(){
-      //console.log(filesToTest[time].counter)
-      //console.log(chunkFolders.length)
+      //console.log(filesToTest[time].counter);
+      //console.log(Object.keys(hosts).length);
       if(filesToTest[time]){
-        if(filesToTest[time].counter === chunkFolders.length-1 && filesToTest[time].original){
+        if(filesToTest[time].counter === Object.keys(hosts).length-2 && filesToTest[time].original){
             callback(filesToTest[time]);
             delete filesToTest[time];
         }
       }
 
-      });
+    });
+
+
 
 }
 
@@ -308,11 +301,7 @@ let url = buildUrl(host, bitRates[Q_index], time);
 let options = getOptions(interval, url);
 let fileName = buildFileName(fragpath, interval, bitRates[Q_index], time);
 
-performRequest(options, time, interval, fileName, testThem);
-
-
-
-
+performRequest(options, time, interval, fileName, testThem, hosts);
 
 }
 
@@ -353,7 +342,7 @@ const moveThem = function(obj){
   delete obj['totaltime'];
 
 //  console.log("MOVE SOME FILES SOMWHERE");
-  //console.log("THE OBJ "+util.inspect(obj, false, null));
+  //g
 
   for(var key in obj){
 
@@ -394,18 +383,20 @@ const whatQ = function(tt){
 
 const testThem = function(obj){
 
+
+
   var now = new Date();
 
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
 
-  //console.log("test them"+obj);
+  console.log("test them"+obj);
 
   let sizes = [];
 
   for(var key in obj){
 
         if (!obj.hasOwnProperty(key)) continue;
-        var frag = obj[key];
+        var frag = obj[key].chunkPath;
           if(typeof(frag) === 'string'){
             if(frag !== ''){
                 let stats = fs.statSync(frag, function(){
@@ -414,7 +405,7 @@ const testThem = function(obj){
              } else {
 
                //console.log("TEST ERROR");
-                var bits = obj.original.split('/');
+                var bits = obj.original.chunkPath.split('/');
                 log('TEST: '+D+' - '+bits[bits.length-1]+' - test ERRORED');
                 moveThem(obj);
 
@@ -425,7 +416,7 @@ const testThem = function(obj){
        }
       let EQ = equivalence(obj, sizes);
 
-      var bits = obj.original.split('/');
+      var bits = obj.original.chunkPath.split('/');
       var str = 'TEST: '+D+' - '+bits[bits.length-1];
 
       if(EQ === false){
