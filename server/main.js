@@ -30,8 +30,9 @@ const bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "
 
 const hosts = {
   'original':{
-    'ip': 'skysportsmainevent-go-hss.ak-cdn.skydvn.com'
-  },'hostA':{
+    'ip': ''
+  },
+  'hostA':{
     'ip': '90.211.176.20'
   },'hostB':{
     'ip': '90.211.176.148'
@@ -44,7 +45,7 @@ const hosts = {
 
 
 
-const Q_index = process.argv[4] || 6;;
+const Q_index = process.argv[4] || 6;
 
 const fragpath = './fragments/';
 
@@ -71,6 +72,8 @@ const streamParse = function(){
   streamObj.host = subpaths[0];
   streamObj.dir1 = subpaths[1];
   streamObj.dir2 = subpaths[2];
+
+  hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
 
   return streamObj;
 
