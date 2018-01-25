@@ -39,6 +39,10 @@ const streamParse = function(){
 }
 
 
+const MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
+const FRAGMENT_WARNING = "THERE WAS AN ERROR REQUESTING THE FRAGMENT";
+
+
 
 const streamObj = streamParse();
 
@@ -72,7 +76,7 @@ var Q_index = 6;
 
 var filesToTest = {};
 
-var fragpath = path.join(__dirname + '/fragments/');
+var fragpath = './fragments/';
 
 var mainIntervalLength = 60000;
 
@@ -84,7 +88,7 @@ var mainIntervalLength = 60000;
 
 var chunkOffSet = 53; // from oldest chunk to live
 
-var intervalB, intervalA;
+let intervalA, intervalB;
 
 const debug = require('debug')('my-namespace')
 const name = 'my-app'
@@ -120,14 +124,7 @@ const createChunkFolders = function(fragpath, hosts, callback){
               }
             }
           });
-    } else {
-  folderNames.map((dir, i, folderNames) => {
-    var a = [];
-    callback(fragpath+dir, dir, a);
-  });
-}
-
-
+    }
 }
 
 const watchFolder = function(path, name, array){
@@ -153,7 +150,7 @@ const watchFolder = function(path, name, array){
 
 const log = function(str){
 
-  var stream = fs.createWriteStream(__dirname+'/fragments/logs/logFile.txt', {flags:'a'});
+  var stream = fs.createWriteStream('./logs/logFile.txt', {flags:'a'});
   stream.write(str + "\n");
   stream.end();
 
@@ -165,23 +162,11 @@ const log = function(str){
 
 const beginTest = function(){
 
+    createFolder('./', 'logs', createLogFile);
     deleteFolder(fragpath, function(){
-    createChunkFolders(fragpath, hosts, watchFolder);
-    createFolder(fragpath, 'non-equals', afterFolders);
-    createFolder(fragpath, 'logs', createLogFile);
-
-    /*var str = 'HOST IPS \n';
-
-    for(var i in hosts){
-      str+=hosts[i]+', ';
-    }
-
-    console.log(str);
-
-    log(str);*/
-
-
-  })
+      createChunkFolders(fragpath, hosts, watchFolder);
+      createFolder(fragpath, 'non-equals', afterFolders);
+    })
 
 
 
@@ -198,7 +183,7 @@ const createTimeoutForIntervalB = function(){
 
 const createLogFile = function(){
   //console.log(__dirname+'/fragments/logs/logFile.txt');
-  fs.writeFile(__dirname+'/fragments/logs/logFile.txt', 'TEST STARTED: '+new Date()+'\n', (err) => {
+  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+'\n', (err) => {
     if (err) {
       throw err;
     }
@@ -230,29 +215,6 @@ const chunkCheckInterval = function(){
         }, 2000);
 }
 
-/*const whichHost = function(int) {
-  var host = "";
-
-  switch(int) {
-
-    case 'original':
-       return 'skysportsmainevent-go-hss.ak-cdn.skydvn.com';
-      break;
-    case 'hostA':
-      return hostIps[0];
-      break;
-    case 'hostB':
-      return hostIps[1];
-      break;
-    case 'hostC':
-      return hostIps[2];
-      break;
-    case 'hostD':
-      return hostIps[3];
-      break;
-
-  }
-}*/
 
 const getOptions = function(streamObj, interval, url){
 
@@ -296,22 +258,32 @@ const performRequest = function(options, time, interval, filename, callback, _ho
 
   request(options, function(err, res, body){
 
-  // console.log("FTOT"+time);
-  //  console.log("FTOT "+util.inspect(_filesToTest, false, null));
+    console.log("The err  "+err);
 
-    if(!filesToTest[time]){
-      filesToTest[time] = _hosts;
-      console.log("FTOT "+util.inspect(filesToTest, false, null));
+    //if(err){
 
-      filesToTest[time].counter = 0;
-    }
-    filesToTest[time][interval].chunkPath = filename;
-    if(interval !== 'original') {
-      //filesToTest[time].totaltime+=(res.timings.end - res.timings.response); // the total of all request for a segment need to happen inside 2seconds
-          if(filesToTest[time].counter < 4){
-            filesToTest[time].counter++;
+    //  console.log(FRAGMENT_WARNING);
+    //  log('FRAGMENT DOWNLOAD ERROR: '+options.url);
+
+    //  clearInterval(intervalB);
+    //  return;
+
+  //  } else {
+
+      if(!filesToTest[time]){
+            filesToTest[time] = _hosts;
+            //console.log("FTOT "+util.inspect(filesToTest, false, null));
+
+            filesToTest[time].counter = 0;
           }
-      }
+          filesToTest[time][interval].chunkPath = filename;
+          if(interval !== 'original') {
+            //filesToTest[time].totaltime+=(res.timings.end - res.timings.response); // the total of all request for a segment need to happen inside 2seconds
+                if(filesToTest[time].counter < 4){
+                  filesToTest[time].counter++;
+                }
+            }
+      //  }
     }).pipe(fs.createWriteStream(filename)).on('close', function(){
       //console.log(filesToTest[time].counter);
       //console.log(Object.keys(hosts).length);
@@ -323,6 +295,10 @@ const performRequest = function(options, time, interval, filename, callback, _ho
       }
 
     });
+
+
+
+
 
 
 
@@ -485,12 +461,31 @@ const downloadManifest = function(callback, streamObj){
   request.get(url, function(err,res,body) {
     parseString(body, function (err, result) {
 
+      const errFunc = function(){
+        console.log(MANIFEST_WARNING);
+        log('MANIFEST DOWNLOAD ERROR: '+url);
+        clearInterval(intervalA);
+        return;
+      }
+
+      if(err){
+        errFunc();
+      }
+
+        if(result !== undefined){
+
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                 let offSetChunk = currentTimeCode+(20000000*chunkOffSet);
                 timecodes.push(parseInt(offSetChunk));
                 callback();
                 downloadChunk(parseInt(offSetChunk), 'original');
+
+              } else {
+                errFunc();
+              }
           });
+
+
 
      });
    }
