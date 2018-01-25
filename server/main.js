@@ -10,25 +10,31 @@ import path from 'path';
 
 import chokidar from 'chokidar';
 
-import winston from 'winston';
-
 import rimraf from 'rimraf';
 
 import dateFormat from 'dateFormat';
 
-const MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
-const FRAGMENT_WARNING = "THERE WAS AN ERROR REQUESTING THE FRAGMENT";
-const EQUALITY_MESSAGE = "FRAGMENTS TESTED EQUAL IN SIZE";
-const NONEQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
-const ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
+module.exports = {
 
-let filesToTest = {};
-let timecodes = []; // rea from the hss manifests
-let intervalA, intervalB;
 
-const bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
 
-const hosts = {
+MANIFEST_WARNING : "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST",
+FRAGMENT_WARNING : "THERE WAS AN ERROR REQUESTING THE FRAGMENT",
+EQUALITY_MESSAGE : "FRAGMENTS TESTED EQUAL IN SIZE",
+NONEQUALITY_MESSAGE : "FRAGMENTS TESTED NON-EQUAL IN SIZE",
+ERROR_EQUALITY_MESSAGE : "FRAGMENTS TESTED NON-EQUAL IN SIZE",
+
+filesToTest : {},
+timecodes : [], // rea from the hss manifests
+
+
+bitRates :["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"],
+
+someFunc: function(){
+  return 'test';
+},
+
+ hosts:  {
   'original':{
     'ip': ''
   },
@@ -41,24 +47,20 @@ const hosts = {
   },'hostD':{
     'ip': '2.122.212.142'
   }
-}
+},
 
 
 
-const Q_index = process.argv[4] || 6;
+Q_index: process.argv[4] || 6,
 
-const fragpath = './fragments/';
+fragpath:  './fragments/',
 
-const mainIntervalLength = 60000;
+mainIntervalLength: 60000,
 
-const fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
-
-let streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
+fragmentOffSet: process.argv[3] || 53, // from oldest chunk to live
 
 
-
-
-const streamParse = function(){
+streamParse: function(streamString){
 
   let streamObj = {};
 
@@ -72,35 +74,26 @@ const streamParse = function(){
   streamObj.host = subpaths[0];
   streamObj.dir1 = subpaths[1];
   streamObj.dir2 = subpaths[2];
+  streamObj.path = streamString;
 
-  hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
+  //hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
 
   return streamObj;
 
-}
+},
 
 
 
 
 
-const streamObj = streamParse();
 
-
-
-
-/* process.argv.forEach(function (val, index, array) {
-  console.log(index + ': ' + val);
-});*/
-
-
-
-
-const deleteFolder = function(path, callback){
+deleteFolder: function(path, callback){
   rimraf(path, function(){
     callback();
   });
-};
+}
 
+/*
 
 const createFolder = function(path, name, callback) {
 
@@ -162,18 +155,14 @@ const log = function(str){
 
 
 
-const beginTest = function(){
-
-    createFolder('./', 'logs', createLogFile);
-    deleteFolder(fragpath, function(){
-      createChunkFolders(fragpath, hosts, watchFolder);
-      createFolder(fragpath, 'non-equals', afterFolders);
-    })
+//const beginTest = function(){
 
 
 
 
-}
+
+
+//}
 
 const createTimeoutForIntervalB = function(){
   if(!intervalB){
@@ -185,7 +174,7 @@ const createTimeoutForIntervalB = function(){
 
 const createLogFile = function(){
   //console.log(__dirname+'/fragments/logs/logFile.txt');
-  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamString+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
+  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamObj.streamString+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
@@ -439,6 +428,22 @@ const downloadManifest = function(callback, streamObj){
 
 
      });
+
    }
 
-beginTest();
+   console.log('beginTest');
+
+     createFolder('./', 'logs', createLogFile);
+     deleteFolder(fragpath, function(){
+       createChunkFolders(fragpath, hosts, watchFolder);
+       createFolder(fragpath, 'non-equals', afterFolders);
+     })
+
+     */
+
+
+};
+
+//FragmentPullComparison();
+
+//export {FragmentPullComparison};
