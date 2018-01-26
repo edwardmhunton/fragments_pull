@@ -14,7 +14,7 @@ import rimraf from 'rimraf';
 
 import dateFormat from 'dateFormat';
 
-module.exports = {
+const FragmentPullComparison = {
 
 
 
@@ -48,6 +48,8 @@ someFunc: function(){
     'ip': '2.122.212.142'
   }
 },
+
+streamString:process.argv[2] || '',
 
 
 
@@ -91,11 +93,10 @@ deleteFolder: function(path, callback){
   rimraf(path, function(){
     callback();
   });
-}
+},
 
-/*
 
-const createFolder = function(path, name, callback) {
+createFolder: function(path, name, callback) {
 
   console.log(path+name);
 
@@ -103,10 +104,10 @@ const createFolder = function(path, name, callback) {
           callback();
     });
 
-}
+},
 
 
-const createChunkFolders = function(fragpath, hosts, callback){
+createChunkFolders: function(fragpath, hosts, callback){
   if(!fs.existsSync(fragpath)){
     fs.mkdir(fragpath, function(){
       for (var key in hosts) {
@@ -120,36 +121,34 @@ const createChunkFolders = function(fragpath, hosts, callback){
             }
           });
     }
-}
+},
 
-const watchFolder = function(path, name, array){
+watchFolder: function(path, name, array){
   const testNum = function(){
     const remove = function(){
       fs.unlink(array[0], function(){
             array.shift();
       })
     }
-    if(name === 'original' && array.length >= 40) {
-      remove();
-    } else if(array.length >= 40) {
+    if(array.length >= 40) {
       remove();
     }
   }
 
-  var watch =  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('add', function(name) {
+  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('add', function(name) {
     array.push(name);
     testNum();
-  })
+  });
 
-}
+},
 
-const log = function(str){
+log: function(str){
 
   var stream = fs.createWriteStream('./logs/logFile.txt', {flags:'a'});
   stream.write(str + "\n");
   stream.end();
 
-}
+},
 
 
 
@@ -164,38 +163,40 @@ const log = function(str){
 
 //}
 
-const createTimeoutForIntervalB = function(){
+createTimeoutForIntervalB: function(){
   if(!intervalB){
       intervalB = setTimeout(function(){
         chunkCheckInterval();
       }, mainIntervalLength); // one minute later pull the fragments from the 4 hosts
   }
-}
+},
 
-const createLogFile = function(){
+createLogFile: function(streamObj, bitRates, fragmentOffSet){
+
+  console.log('streamObj: '+streamObj)
   //console.log(__dirname+'/fragments/logs/logFile.txt');
-  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamObj.streamString+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
+  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamObj.path+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
     console.log("log file created");
   });
-}
+},
 
 
-const afterFolders = function(){
+afterFolders: function(){
   manifestInterval(createTimeoutForIntervalB, streamObj);
-}
+},
 
-const manifestInterval = function(callback, stream) {
+manifestInterval: function(callback, stream) {
     if(!intervalA){
       intervalA = setInterval(function(){
         downloadManifest(callback, stream);
       }, 2000);
 }
-}
+},
 
-const chunkCheckInterval = function(){
+chunkCheckInterval: function(){
 
   setInterval(function(){
             timecodes.shift();
@@ -204,10 +205,10 @@ const chunkCheckInterval = function(){
             downloadChunk(timecodes[0], 'hostC');
             downloadChunk(timecodes[0], 'hostD');
         }, 2000);
-}
+},
 
 
-const getOptions = function(streamObj, interval, url){
+getOptions: function(streamObj, interval, url){
 
   console.log("URL"+url);
 
@@ -228,26 +229,26 @@ const getOptions = function(streamObj, interval, url){
 
   return options;
 
-}
+},
 
-const buildBaseUrl = function(streamObj){
+buildBaseUrl: function(streamObj){
   return 'http://'+streamObj.host+'/'+streamObj.dir1+'/'+streamObj.dir2+'.isml';
-}
+},
 
-const buildManifestUUrl = function(streamObj){
+buildManifestUUrl: function(streamObj){
   return buildBaseUrl(streamObj)+'/Manifest';
-}
+},
 
-const buildChunkUrl = function(streamObj, q, t){
+buildChunkUrl: function(streamObj, q, t){
     return buildBaseUrl(streamObj)+'/QualityLevels('+q+')/Fragments(video='+t+')';
-}
+},
 
-const buildFileName = function(p, i, q, t){
+buildFileName: function(p, i, q, t){
   return p+i+'/chunk_'+q+'_'+t+'.mp4';
-}
+},
 
 
-const performRequest = function(options, time, interval, filename, callback, _hosts) {
+performRequest: function(options, time, interval, filename, callback, _hosts) {
 
   request(options, function(err, res, body){
 
@@ -282,25 +283,18 @@ const performRequest = function(options, time, interval, filename, callback, _ho
       }
 
     });
+},
 
-
-
-
-
-
-
-}
-
-const downloadChunk = function(time, interval){
+constdownloadChunk: function(time, interval){
       let url = buildChunkUrl(streamObj, bitRates[Q_index], time);
       let options = getOptions(streamObj, interval, url);
       let fileName = buildFileName(fragpath, interval, bitRates[Q_index], time);
 
       performRequest(options, time, interval, fileName, testThem, hosts);
 
-}
+},
 
-const equivalence = function(obj, sizes){
+equivalence: function(obj, sizes){
 
   function allEqual(arr) {
     for(var i = 0; i <arr.length-1; i++ ){
@@ -325,13 +319,10 @@ const equivalence = function(obj, sizes){
     console.log(NONEQUALITY_MESSAGE);
 
     return false;
-
-
-
   }
-}
+},
 
-const moveThem = function(obj){
+moveThem: function(obj){
 
   delete obj['counter'];
   delete obj['totaltime'];
@@ -346,12 +337,9 @@ const moveThem = function(obj){
     }
   }
 
-}
+},
 
-const testThem = function(obj){
-
-
-
+testThem: function(obj){
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
 
@@ -392,11 +380,11 @@ const testThem = function(obj){
           console.log(str);
           log(str);
       }
-    }
+},
 
 
 
-const downloadManifest = function(callback, streamObj){
+downloadManifest: function(callback, streamObj){
 
    var url = buildManifestUUrl(streamObj);
 
@@ -424,26 +412,24 @@ const downloadManifest = function(callback, streamObj){
 
               }
           });
+        });
 
+   },
 
-
-     });
+   setUp: function(){
+     this.createFolder('./', 'logs', this.createLogFile(this.streamObj, this.bitrates, this.fragmentOffSet));
+     this.deleteFolder(this.fragpath, function(){
+       this.createChunkFolders(this.fragpath, this.hosts, this.watchFolder);
+       this.createFolder(this.fragpath, 'non-equals', this.afterFolders);
+     })
 
    }
 
-   console.log('beginTest');
 
-     createFolder('./', 'logs', createLogFile);
-     deleteFolder(fragpath, function(){
-       createChunkFolders(fragpath, hosts, watchFolder);
-       createFolder(fragpath, 'non-equals', afterFolders);
-     })
-
-     */
 
 
 };
 
-//FragmentPullComparison();
+FragmentPullComparison.setUp();
 
-//export {FragmentPullComparison};
+module.exports = FragmentPullComparison;
