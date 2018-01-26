@@ -14,27 +14,19 @@ import rimraf from 'rimraf';
 
 import dateFormat from 'dateFormat';
 
-module.exports = {
+const MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
+const FRAGMENT_WARNING = "THERE WAS AN ERROR REQUESTING THE FRAGMENT";
+const EQUALITY_MESSAGE = "FRAGMENTS TESTED EQUAL IN SIZE";
+const NONEQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
+const ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
 
+let filesToTest = {};
+let timecodes = []; // rea from the hss manifests
+let intervalA, intervalB;
 
+const bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
 
-MANIFEST_WARNING : "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST",
-FRAGMENT_WARNING : "THERE WAS AN ERROR REQUESTING THE FRAGMENT",
-EQUALITY_MESSAGE : "FRAGMENTS TESTED EQUAL IN SIZE",
-NONEQUALITY_MESSAGE : "FRAGMENTS TESTED NON-EQUAL IN SIZE",
-ERROR_EQUALITY_MESSAGE : "FRAGMENTS TESTED NON-EQUAL IN SIZE",
-
-filesToTest : {},
-timecodes : [], // rea from the hss manifests
-
-
-bitRates :["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"],
-
-someFunc: function(){
-  return 'test';
-},
-
- hosts:  {
+const hosts = {
   'original':{
     'ip': ''
   },
@@ -47,20 +39,24 @@ someFunc: function(){
   },'hostD':{
     'ip': '2.122.212.142'
   }
-},
+}
 
 
 
-Q_index: process.argv[4] || 6,
+const Q_index = process.argv[4] || 6;
 
-fragpath:  './fragments/',
+const fragpath = './fragments/';
 
-mainIntervalLength: 60000,
+const mainIntervalLength = 60000;
 
-fragmentOffSet: process.argv[3] || 53, // from oldest chunk to live
+const fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
+
+let streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
 
 
-streamParse: function(streamString){
+
+
+const streamParse = function(){
 
   let streamObj = {};
 
@@ -74,26 +70,31 @@ streamParse: function(streamString){
   streamObj.host = subpaths[0];
   streamObj.dir1 = subpaths[1];
   streamObj.dir2 = subpaths[2];
-  streamObj.path = streamString;
 
-  //hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
+  hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
 
   return streamObj;
 
-},
+}
+
+
+
+
+
+const streamObj = streamParse();
 
 
 
 
 
 
-deleteFolder: function(path, callback){
+const deleteFolder = function(path, callback){
   rimraf(path, function(){
     callback();
   });
 }
 
-/*
+
 
 const createFolder = function(path, name, callback) {
 
@@ -155,14 +156,18 @@ const log = function(str){
 
 
 
-//const beginTest = function(){
+const beginTest = function(){
+
+createFolder('./', 'logs', createLogFile);
+deleteFolder(fragpath, function(){
+  createChunkFolders(fragpath, hosts, watchFolder);
+  createFolder(fragpath, 'non-equals', afterFolders);
+})
 
 
 
 
-
-
-//}
+}
 
 const createTimeoutForIntervalB = function(){
   if(!intervalB){
@@ -431,19 +436,10 @@ const downloadManifest = function(callback, streamObj){
 
    }
 
-   console.log('beginTest');
-
-     createFolder('./', 'logs', createLogFile);
-     deleteFolder(fragpath, function(){
-       createChunkFolders(fragpath, hosts, watchFolder);
-       createFolder(fragpath, 'non-equals', afterFolders);
-     })
-
-     */
 
 
-};
 
-//FragmentPullComparison();
+
+beginTest();
 
 //export {FragmentPullComparison};
