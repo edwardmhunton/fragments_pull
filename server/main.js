@@ -14,49 +14,60 @@ import rimraf from 'rimraf';
 
 import dateFormat from 'dateFormat';
 
-const MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
-const FRAGMENT_WARNING = "THERE WAS AN ERROR REQUESTING THE FRAGMENT";
-const EQUALITY_MESSAGE = "FRAGMENTS TESTED EQUAL IN SIZE";
-const NONEQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
-const ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
+class FragmentPullComparison {
 
-let filesToTest = {};
-let timecodes = []; // rea from the hss manifests
-let intervalA, intervalB;
+  constructor() {
 
-const bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
+    this.MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
+    this.FRAGMENT_WARNING = "THERE WAS AN ERROR REQUESTING THE FRAGMENT";
+    this.EQUALITY_MESSAGE = "FRAGMENTS TESTED EQUAL IN SIZE";
+    this.NONEQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
+    this.ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
 
-const hosts = {
-  'original':{
-    'ip': ''
-  },
-  'hostA':{
-    'ip': '90.211.176.20'
-  },'hostB':{
-    'ip': '90.211.176.148'
-  },'hostC':{
-    'ip': '2.122.212.14'
-  },'hostD':{
-    'ip': '2.122.212.142'
+    this.filesToTest = {};
+    this.timecodes = []; // rea from the hss manifests
+    this.intervalA;
+    this.intervalB;
+
+    this.bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
+
+    this.hosts = {
+      'original':{
+        'ip': ''
+      },
+      'hostA':{
+        'ip': '90.211.176.20'
+      },'hostB':{
+        'ip': '90.211.176.148'
+      },'hostC':{
+        'ip': '2.122.212.14'
+      },'hostD':{
+        'ip': '2.122.212.142'
+      }
+    }
+
+
+
+    this.Q_index = process.argv[4] || 6;
+
+    this.fragpath = './fragments/';
+
+    this.mainIntervalLength = 60000;
+
+    this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
+
+    this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
+
+    this.streamObj = {};
+
+
   }
-}
-
-
-
-const Q_index = process.argv[4] || 6;
-
-const fragpath = './fragments/';
-
-const mainIntervalLength = 60000;
-
-const fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
-
-let streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
 
 
 
 
-const streamParse = function(){
+
+ streamParse(streamString){
 
   let streamObj = {};
 
@@ -70,116 +81,36 @@ const streamParse = function(){
   streamObj.host = subpaths[0];
   streamObj.dir1 = subpaths[1];
   streamObj.dir2 = subpaths[2];
+  streamObj.path = streamString;
 
-  hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
+  //hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
 
   return streamObj;
 
 }
 
+beginTest(){
 
+  this.streamObj = this.streamParse(this.streamString);
 
-
-
-const streamObj = streamParse();
-
-
-
-
-
-
-const deleteFolder = function(path, callback){
-  rimraf(path, function(){
-    callback();
-  });
+  this.createFolder('./', 'logs', this.createLogFile.bind(this));
+  this.deleteFolder(this.fragpath, function(){
+    this.createChunkFolders(this.fragpath, this.hosts, this.watchFolder.bind(this));
+    this.createFolder(this.fragpath, 'non-equals', this.afterFolders.bind(this));
+  }.bind(this));
 }
 
-
-
-const createFolder = function(path, name, callback) {
-
-  console.log(path+name);
-
-    fs.mkdir(path+name, function(){
-          callback();
-    });
-
-}
-
-
-const createChunkFolders = function(fragpath, hosts, callback){
-  if(!fs.existsSync(fragpath)){
-    fs.mkdir(fragpath, function(){
-      for (var key in hosts) {
-        if (!hosts.hasOwnProperty(key)) continue;
-        if(!fs.existsSync(fragpath+key)){
-                fs.mkdir(fragpath+key, function(){
-                  var a = [];
-                  callback(fragpath+key, key, a);
-                });
-              }
-            }
-          });
-    }
-}
-
-const watchFolder = function(path, name, array){
-  const testNum = function(){
-    const remove = function(){
-      fs.unlink(array[0], function(){
-            array.shift();
-      })
-    }
-    if(name === 'original' && array.length >= 40) {
-      remove();
-    } else if(array.length >= 40) {
-      remove();
-    }
-  }
-
-  var watch =  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('add', function(name) {
-    array.push(name);
-    testNum();
-  })
-
-}
-
-const log = function(str){
-
-  var stream = fs.createWriteStream('./logs/logFile.txt', {flags:'a'});
-  stream.write(str + "\n");
-  stream.end();
-
-}
-
-
-
-
-
-const beginTest = function(){
-
-createFolder('./', 'logs', createLogFile);
-deleteFolder(fragpath, function(){
-  createChunkFolders(fragpath, hosts, watchFolder);
-  createFolder(fragpath, 'non-equals', afterFolders);
-})
-
-
-
-
-}
-
-const createTimeoutForIntervalB = function(){
-  if(!intervalB){
-      intervalB = setTimeout(function(){
-        chunkCheckInterval();
-      }, mainIntervalLength); // one minute later pull the fragments from the 4 hosts
+createTimeoutForIntervalB(){
+  var self = this;
+  if(!this.intervalB){
+      this.intervalB = setTimeout(function(){
+        self.chunkCheckInterval();
+      }, self.mainIntervalLength); // one minute later pull the fragments from the 4 hosts
   }
 }
 
-const createLogFile = function(){
-  //console.log(__dirname+'/fragments/logs/logFile.txt');
-  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamObj.streamString+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
+createLogFile(){
+  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.streamString+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
@@ -188,34 +119,34 @@ const createLogFile = function(){
 }
 
 
-const afterFolders = function(){
-  manifestInterval(createTimeoutForIntervalB, streamObj);
+afterFolders(){
+  this.manifestInterval(this.createTimeoutForIntervalB.bind(this), this.streamObj);
 }
 
-const manifestInterval = function(callback, stream) {
-    if(!intervalA){
-      intervalA = setInterval(function(){
-        downloadManifest(callback, stream);
+manifestInterval(callback, stream) {
+  var self = this;
+    if(!this.intervalA){
+      this.intervalA = setInterval(function(){
+        self.downloadManifest(callback, stream);
       }, 2000);
 }
 }
 
-const chunkCheckInterval = function(){
+chunkCheckInterval(){
+
+  var self = this;
 
   setInterval(function(){
-            timecodes.shift();
-            downloadChunk(timecodes[0], 'hostA');
-            downloadChunk(timecodes[0], 'hostB');
-            downloadChunk(timecodes[0], 'hostC');
-            downloadChunk(timecodes[0], 'hostD');
+            self.timecodes.shift();
+            self.downloadChunk(self.timecodes[0], 'hostA');
+            self.downloadChunk(self.timecodes[0], 'hostB');
+            self.downloadChunk(self.timecodes[0], 'hostC');
+            self.downloadChunk(self.timecodes[0], 'hostD');
         }, 2000);
 }
 
 
-const getOptions = function(streamObj, interval, url){
-
-  console.log("URL"+url);
-
+getOptions(host, interval, url){
   let options = {
       time: true,
       url: url,
@@ -228,84 +159,74 @@ const getOptions = function(streamObj, interval, url){
       };
 
   if(interval !== 'original'){
-    options.headers.Host =  streamObj.host;
+    options.headers.Host =  host;
   }
 
   return options;
 
 }
 
-const buildBaseUrl = function(streamObj){
+buildBaseUrl (streamObj){
   return 'http://'+streamObj.host+'/'+streamObj.dir1+'/'+streamObj.dir2+'.isml';
 }
 
-const buildManifestUUrl = function(streamObj){
-  return buildBaseUrl(streamObj)+'/Manifest';
+buildManifestUUrl (streamObj){
+    return this.buildBaseUrl(streamObj)+'/Manifest';
 }
 
-const buildChunkUrl = function(streamObj, q, t){
-    return buildBaseUrl(streamObj)+'/QualityLevels('+q+')/Fragments(video='+t+')';
+buildChunkUrl (streamObj, q, t){
+    return this.buildBaseUrl(streamObj)+'/QualityLevels('+q+')/Fragments(video='+t+')';
 }
 
-const buildFileName = function(p, i, q, t){
-  return p+i+'/chunk_'+q+'_'+t+'.mp4';
+buildFileName (path, interval, quality, time){
+  return path+interval+'/chunk_'+quality+'_'+time+'.mp4';
 }
 
 
-const performRequest = function(options, time, interval, filename, callback, _hosts) {
+performRequest (options, time, interval, filename, callback, _hosts) {
+  var self = this;
 
   request(options, function(err, res, body){
-
-
-
     if(err !== null || res.statusCode !== 200){
-      console.log(FRAGMENT_WARNING);
-      log(FRAGMENT_WARNING+options.url);
-      clearInterval(intervalB);
+      console.log(self.FRAGMENT_WARNING);
+      this.log(self.FRAGMENT_WARNING+options.url);
+      clearInterval(self.intervalB);
       return;
 
     } else {
 
-      if(!filesToTest[time]){
-            filesToTest[time] = _hosts;
-            filesToTest[time].counter = 0;
+      if(!self.filesToTest[time]){
+            self.filesToTest[time] = _hosts;
+            self.filesToTest[time].counter = 0;
           }
-          filesToTest[time][interval].chunkPath = filename;
+          self.filesToTest[time][interval].chunkPath = filename;
           if(interval !== 'original') {
             //filesToTest[time].totaltime+=(res.timings.end - res.timings.response); // the total of all request for a segment need to happen inside 2seconds
-                if(filesToTest[time].counter < 4){
-                  filesToTest[time].counter++;
+                if(self.filesToTest[time].counter < 4){
+                  self.filesToTest[time].counter++;
                 }
             }
         }
     }).pipe(fs.createWriteStream(filename)).on('close', function(){
-      if(filesToTest[time]){
-        if(filesToTest[time].counter === Object.keys(hosts).length-2 && filesToTest[time].original){
-            callback(filesToTest[time]);
-            delete filesToTest[time];
+      if(self.filesToTest[time]){
+        if(self.filesToTest[time].counter === Object.keys(_hosts).length-2 && self.filesToTest[time].original){
+            callback(self.filesToTest[time]);
+            delete self.filesToTest[time];
         }
       }
-
     });
+}
 
+downloadChunk (time, interval){
+      let url = this.buildChunkUrl(this.streamObj, this.bitRates[this.Q_index], time);
+      let options = this.getOptions(this.streamObj.host, interval, url);
+      let fileName = this.buildFileName(this.fragpath, interval, this.bitRates[this.Q_index], time);
 
-
-
-
-
+      this.performRequest(options, time, interval, fileName, this.testThem.bind(this), this.hosts);
 
 }
 
-const downloadChunk = function(time, interval){
-      let url = buildChunkUrl(streamObj, bitRates[Q_index], time);
-      let options = getOptions(streamObj, interval, url);
-      let fileName = buildFileName(fragpath, interval, bitRates[Q_index], time);
-
-      performRequest(options, time, interval, fileName, testThem, hosts);
-
-}
-
-const equivalence = function(obj, sizes){
+equivalence (obj, sizes){
 
   function allEqual(arr) {
     for(var i = 0; i <arr.length-1; i++ ){
@@ -321,13 +242,13 @@ const equivalence = function(obj, sizes){
 
   if(EQ === true) {
 
-    console.log(EQUALITY_MESSAGE);
+    console.log(this.EQUALITY_MESSAGE);
 
     return true;
 
   } else {
 
-    console.log(NONEQUALITY_MESSAGE);
+    console.log(this.NONEQUALITY_MESSAGE);
 
     return false;
 
@@ -336,7 +257,7 @@ const equivalence = function(obj, sizes){
   }
 }
 
-const moveThem = function(obj){
+moveThem (obj){
 
   delete obj['counter'];
   delete obj['totaltime'];
@@ -353,7 +274,7 @@ const moveThem = function(obj){
 
 }
 
-const testThem = function(obj){
+testThem (obj){
 
 
 
@@ -372,9 +293,9 @@ const testThem = function(obj){
                         sizes.push(stats.size);
                 });
              } else {
-              console.log(ERROR_EQUALITY_MESSAGE);
+              console.log(this.ERROR_EQUALITY_MESSAGE);
               var bits = obj.original.chunkPath.split('/');
-              log('TEST: '+D+' - '+bits[bits.length-1]+' - '+ERROR_EQUALITY_MESSAGE);
+              this.log('TEST: '+D+' - '+bits[bits.length-1]+' - '+ this.ERROR_EQUALITY_MESSAGE);
               moveThem(obj);
 
 
@@ -382,39 +303,36 @@ const testThem = function(obj){
              }
           }
        }
-      let EQ = equivalence(obj, sizes);
+      let EQ = this.equivalence(obj, sizes);
 
       var bits = obj.original.chunkPath.split('/');
       var str = 'TEST: '+D+' - '+bits[bits.length-1];
 
       if(EQ === false){
-          str+=' - '+NONEQUALITY_MESSAGE;
+          str+=' - '+ this.NONEQUALITY_MESSAGE;
           console.log(str);
-          log(str);
+          this.log(str);
           moveThem(obj);
       } else {
-          str+=' - '+EQUALITY_MESSAGE;
+          str+=' - '+ this.EQUALITY_MESSAGE;
           console.log(str);
-          log(str);
+          this.log(str);
       }
     }
 
 
 
-const downloadManifest = function(callback, streamObj){
-
-   var url = buildManifestUUrl(streamObj);
-
+downloadManifest(callback, streamObj){
+  var self = this;
+  var url = this.buildManifestUUrl(streamObj);
   request.get(url, function(err,res,body) {
-
-    //console.log("URL "+url);
 
     parseString(body, function (err, result) {
 
-              const errFunc = function(){
-                console.log(MANIFEST_WARNING);
-                log(MANIFEST_WARNING+url);
-                clearInterval(intervalA);
+             const errFunc = function(){
+                console.log(self.MANIFEST_WARNING);
+                this.log(self.MANIFEST_WARNING+url);
+                clearInterval(self.intervalA);
                 return;
               }
               if(err !== null || res.statusCode !== 200){
@@ -422,13 +340,13 @@ const downloadManifest = function(callback, streamObj){
               } else {
 
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
-                let offSetChunk = currentTimeCode+(20000000*fragmentOffSet);
-                timecodes.push(parseInt(offSetChunk));
+                let offSetChunk = currentTimeCode+(20000000*self.fragmentOffSet);
+                self.timecodes.push(parseInt(offSetChunk));
+                self.downloadChunk(parseInt(offSetChunk), 'original');
                 callback();
-                downloadChunk(parseInt(offSetChunk), 'original');
 
               }
-          });
+          }.bind(this));
 
 
 
@@ -436,10 +354,73 @@ const downloadManifest = function(callback, streamObj){
 
    }
 
+   ///  ***********  FS WORk ************ testing beyond scope ******************** /////////////////
+
+   deleteFolder (path, callback){
+     rimraf(path, function(){
+       callback();
+     });
+   }
 
 
 
+   createFolder(path, name, callback) {
+       fs.mkdir(path+name, function(){
+             callback();
+       });
 
-beginTest();
+   }
 
-//export {FragmentPullComparison};
+   createChunkFolders(fragpath, hosts, callback){
+     if(!fs.existsSync(fragpath)){
+       fs.mkdir(fragpath, function(){
+         for (var key in hosts) {
+           if (!hosts.hasOwnProperty(key)) continue;
+           if(!fs.existsSync(fragpath+key)){
+                   fs.mkdir(fragpath+key, function(){
+                     var a = [];
+                     callback(fragpath+key, key, a);
+                   });
+                 }
+               }
+             });
+       }
+   }
+
+   watchFolder(path, name, array){
+     const testNum = function(){
+       const remove = function(){
+         fs.unlink(array[0], function(){
+               array.shift();
+         })
+       }
+       if(name === 'original' && array.length >= 60) {
+         remove();
+       } else if(array.length >= 60) {
+         remove();
+       }
+     }
+
+     var watch =  chokidar.watch(path, {ignored: /[\/\\]\./, persistent: true}).on('add', function(name) {
+       array.push(name);
+       testNum();
+     })
+
+   }
+
+   log(str){
+
+     var stream = fs.createWriteStream('./logs/logFile.txt', {flags:'a'});
+     stream.write(str + "\n");
+     stream.end();
+
+   }
+
+ }
+
+
+
+var fragmentPuller = new FragmentPullComparison();
+fragmentPuller.beginTest();
+
+module.exports = FragmentPullComparison;
