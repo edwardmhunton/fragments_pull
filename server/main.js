@@ -10,11 +10,6 @@ import path from 'path';
 
 import chokidar from 'chokidar';
 
-<<<<<<< HEAD
-//import winston from 'winston';
-
-=======
->>>>>>> cc35c0c76af00b7c59e6153df8f0d49f5a499074
 import rimraf from 'rimraf';
 
 import dateFormat from 'dateFormat';
