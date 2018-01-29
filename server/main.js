@@ -10,8 +10,11 @@ import path from 'path';
 
 import chokidar from 'chokidar';
 
+<<<<<<< HEAD
 //import winston from 'winston';
 
+=======
+>>>>>>> cc35c0c76af00b7c59e6153df8f0d49f5a499074
 import rimraf from 'rimraf';
 
 import dateFormat from 'dateFormat';
@@ -88,18 +91,14 @@ const streamObj = streamParse();
 
 
 
-/* process.argv.forEach(function (val, index, array) {
-  console.log(index + ': ' + val);
-});*/
-
-
 
 
 const deleteFolder = function(path, callback){
   rimraf(path, function(){
     callback();
   });
-};
+}
+
 
 
 const createFolder = function(path, name, callback) {
@@ -164,11 +163,11 @@ const log = function(str){
 
 const beginTest = function(){
 
-    createFolder('./', 'logs', createLogFile);
-    deleteFolder(fragpath, function(){
-      createChunkFolders(fragpath, hosts, watchFolder);
-      createFolder(fragpath, 'non-equals', afterFolders);
-    })
+createFolder('./', 'logs', createLogFile);
+deleteFolder(fragpath, function(){
+  createChunkFolders(fragpath, hosts, watchFolder);
+  createFolder(fragpath, 'non-equals', afterFolders);
+})
 
 
 
@@ -185,7 +184,7 @@ const createTimeoutForIntervalB = function(){
 
 const createLogFile = function(){
   //console.log(__dirname+'/fragments/logs/logFile.txt');
-  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamString+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
+  fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+streamObj.streamString+' , BITRATE: '+bitRates[Q_index]+', FRAGMENT OFFSET: '+fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
@@ -439,6 +438,13 @@ const downloadManifest = function(callback, streamObj){
 
 
      });
+
    }
 
+
+
+
+
 beginTest();
+
+//export {FragmentPullComparison};

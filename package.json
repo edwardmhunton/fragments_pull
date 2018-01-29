@@ -5,33 +5,24 @@
   "main": "index.js",
   "scripts": {
     "start": "babel-node server/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha --compilers js:babel-core/register './server/*.spec.js'"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "chokidar": "^2.0.0",
-    "curlrequest": "^1.0.1",
     "dateformat": "^3.0.2",
-    "debug": "^3.1.0",
-    "download-file": "^0.1.5",
-    "express": "^4.16.2",
-    "eyes": "^0.1.8",
     "fs": "0.0.1-security",
-    "install": "^0.10.2",
-    "lodash": "^4.17.4",
-    "node-watch": "^0.5.5",
-    "npm": "^5.6.0",
     "path": "^0.12.7",
     "request": "^2.83.0",
     "rimraf": "^2.6.2",
-    "set": "^1.1.1",
-    "simple-grep": "0.0.1",
-    "winston": "^2.4.0",
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
+    "assert": "^1.4.1",
     "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.6.1"
+    "babel-preset-env": "^1.6.1",
+    "jest": "^22.1.4",
+    "mocha": "^5.0.0"
   }
 }
