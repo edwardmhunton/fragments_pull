@@ -25,7 +25,7 @@ class FragmentPullComparison {
     this.ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
 
     this.filesToTest = {};
-    this.timecodes = []; // rea from the hss manifests
+    this.timecodes = []; // taken from the hss manifests
     this.intervalA;
     this.intervalB;
 
@@ -34,8 +34,7 @@ class FragmentPullComparison {
     this.hosts = {
       'original':{
         'ip': ''
-      },
-      'hostA':{
+      },'hostA':{
         'ip': '90.211.176.20'
       },'hostB':{
         'ip': '90.211.176.148'
@@ -45,14 +44,11 @@ class FragmentPullComparison {
         'ip': '2.122.212.142'
       }
     }
-
-
-
     this.Q_index = process.argv[4] || 6;
 
     this.fragpath = './fragments/';
 
-    this.mainIntervalLength = 60000;
+    this.mainIntervalLength = 10000;
 
     this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
 
@@ -60,6 +56,7 @@ class FragmentPullComparison {
 
     this.streamObj = {};
 
+    this.offSetBufferLength = 10; // how many files retain as a buffer before deleting them
 
   }
 
@@ -138,10 +135,10 @@ chunkCheckInterval(){
 
   setInterval(function(){
             self.timecodes.shift();
-            self.downloadChunk(self.timecodes[0], 'hostA');
-            self.downloadChunk(self.timecodes[0], 'hostB');
-            self.downloadChunk(self.timecodes[0], 'hostC');
-            self.downloadChunk(self.timecodes[0], 'hostD');
+            self.downloadChunk(self.timecodes[0], 'hostA', self.bitRates[self.Q_index]);
+            self.downloadChunk(self.timecodes[0], 'hostB',self.bitRates[self.Q_index]);
+            self.downloadChunk(self.timecodes[0], 'hostC', self.bitRates[self.Q_index]);
+            self.downloadChunk(self.timecodes[0], 'hostD', self.bitRates[self.Q_index]);
         }, 2000);
 }
 
@@ -182,6 +179,25 @@ buildFileName (path, interval, quality, time){
   return path+interval+'/chunk_'+quality+'_'+time+'.mp4';
 }
 
+equivalence (obj, sizes){
+  function allEqual(arr) {
+    for(var i = 0; i <arr.length-1; i++ ){
+      if(arr[i] !== arr[i+1]){
+            return false;
+          }
+        }
+    return true;
+  }
+  var EQ = allEqual(sizes);
+  if(EQ === true) {
+    console.log(this.EQUALITY_MESSAGE);
+    return true;
+  } else {
+    console.log(this.NONEQUALITY_MESSAGE);
+    return false;
+  }
+}
+
 
 performRequest (options, time, interval, filename, callback, _hosts) {
   var self = this;
@@ -217,47 +233,18 @@ performRequest (options, time, interval, filename, callback, _hosts) {
     });
 }
 
-downloadChunk (time, interval){
-      let url = this.buildChunkUrl(this.streamObj, this.bitRates[this.Q_index], time);
+downloadChunk (time, interval, qual){
+      let url = this.buildChunkUrl(this.streamObj, qual, time);
       let options = this.getOptions(this.streamObj.host, interval, url);
       let fileName = this.buildFileName(this.fragpath, interval, this.bitRates[this.Q_index], time);
 
-      this.performRequest(options, time, interval, fileName, this.testThem.bind(this), this.hosts);
+      this.performRequest(options, time, interval, fileName, this.testFragmentEquality.bind(this), this.hosts);
 
 }
 
-equivalence (obj, sizes){
-
-  function allEqual(arr) {
-    for(var i = 0; i <arr.length-1; i++ ){
-
-          if(arr[i] !== arr[i+1]){
-            return false;
-          }
-    }
-    return true;
-  }
-
-  var EQ = allEqual(sizes);
-
-  if(EQ === true) {
-
-    console.log(this.EQUALITY_MESSAGE);
-
-    return true;
-
-  } else {
-
-    console.log(this.NONEQUALITY_MESSAGE);
-
-    return false;
 
 
-
-  }
-}
-
-moveThem (obj){
+relocateNonEqualFragments (obj){
 
   delete obj['counter'];
   delete obj['totaltime'];
@@ -274,9 +261,11 @@ moveThem (obj){
 
 }
 
-testThem (obj){
+   ///  ***********  FS WORk ************ testing beyond scope ******************** /////////////////
 
+testFragmentEquality (obj){
 
+  console.log("The obj"+ util.inspect(obj, false, null))
 
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
@@ -296,7 +285,7 @@ testThem (obj){
               console.log(this.ERROR_EQUALITY_MESSAGE);
               var bits = obj.original.chunkPath.split('/');
               this.log('TEST: '+D+' - '+bits[bits.length-1]+' - '+ this.ERROR_EQUALITY_MESSAGE);
-              moveThem(obj);
+              relocateNonEqualFragments(obj);
 
 
 
@@ -312,7 +301,7 @@ testThem (obj){
           str+=' - '+ this.NONEQUALITY_MESSAGE;
           console.log(str);
           this.log(str);
-          moveThem(obj);
+          relocateNonEqualFragments(obj);
       } else {
           str+=' - '+ this.EQUALITY_MESSAGE;
           console.log(str);
@@ -342,7 +331,7 @@ downloadManifest(callback, streamObj){
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                 let offSetChunk = currentTimeCode+(20000000*self.fragmentOffSet);
                 self.timecodes.push(parseInt(offSetChunk));
-                self.downloadChunk(parseInt(offSetChunk), 'original');
+                self.downloadChunk(parseInt(offSetChunk), 'original',self.bitRates[self.Q_index]);
                 callback();
 
               }
@@ -354,7 +343,7 @@ downloadManifest(callback, streamObj){
 
    }
 
-   ///  ***********  FS WORk ************ testing beyond scope ******************** /////////////////
+
 
    deleteFolder (path, callback){
      rimraf(path, function(){
@@ -394,9 +383,9 @@ downloadManifest(callback, streamObj){
                array.shift();
          })
        }
-       if(name === 'original' && array.length >= 60) {
+       if(name === 'original' && array.length >= offSetBufferLength) {
          remove();
-       } else if(array.length >= 60) {
+       } else if(array.length >= offSetBufferLength) {
          remove();
        }
      }
