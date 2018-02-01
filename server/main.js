@@ -2,7 +2,7 @@ import fs from 'fs';
 
 import util from 'util';
 
-import request from 'request-promise';
+import request from 'request';
 
 import {parseString} from 'xml2js';
 
@@ -55,7 +55,14 @@ class FragmentPullComparison {
         'ip': '2.122.212.142'
       }
     }
+
+    this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
+
+    this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
+
     this.Q_index = process.argv[4] || 6;
+
+    this.mode = process.argv[5] || 'debug';
 
     this.fragpath = './fragments/';
 
@@ -65,17 +72,27 @@ class FragmentPullComparison {
 
     this.manifestIntervalLength = 2000; // 2 sec
 
-    this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
-
     this.fragmentLength = 20000000; // from oldest chunk to live
-
-    this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
 
     this.streamObj = {};
 
     this.offSetBufferLength = 10; // how many files retain as a buffer before deleting them
 
+    this.oldConsoleLog = null;
+
   }
+
+consoleToggle(toggle){
+  if(toggle){
+    if(this.oldConsoleLog === null){
+      return;
+    }
+    console.log = this.oldConsoleLog;
+    } else {
+      this.oldConsoleLog = console.log;
+      console.log = function(){};
+    }
+}
 
 
 
@@ -114,35 +131,33 @@ setUpWatchers(){
 }
 
 beginTest(){
-
-  this.streamObj = this.streamParse(this.streamString);
-
-  this.createFolder('./', 'logs', this.createLogFile.bind(this));
-  this.deleteFolder(this.fragpath, function(){
+    this.streamObj = this.streamParse(this.streamString);
+    this.createFolder('./', 'logs', this.createLogFile.bind(this));
+    this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
     this.createFolder(this.fragpath, 'non-equals', this.afterFolders.bind(this));
   }.bind(this));
 }
 
-createChunckTimeout(t){
-  console.log("set time out  "+t);
+createChunkTimeout(obj, t){
     var self = this;
-    self.t = t;
-    setTimeout(function(){
+    //self.obj = obj;
+    console.log("val of obj when its called "+util.inspect(obj, false, null));
 
-      self.downloadAllChunks(self.t);
+
+    (function(o){
+      setTimeout(function(){
+      //console.log("The index when createChunckTimeout is called "+util.inspect(self.filesToTest[t], false, null));
+      console.log("val of obj when timeout is called "+util.inspect(o, false, null));
+
+      self.downloadAllChunks(o, t);
     }, self.mainIntervalLength); // one minute later pull the fragments from the 4 hosts
+  })(obj);
+
+  //k(obj);
+    //console.log("T"+util.inspect(t, false, null));
 
 }
-
-/*createTimeoutForIntervalB(){
-  var self = this;
-  if(!this.intervalB){
-      this.intervalB = setTimeout(function(){
-        self.chunkCheckInterval();
-      }, self.mainIntervalLength); // one minute later pull the fragments from the 4 hosts
-  }
-}*/
 
 createLogFile(){
   fs.writeFile('./logs/logFile.txt', 'TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
@@ -155,7 +170,7 @@ createLogFile(){
 
 
 afterFolders(){
-  this.manifestInterval(this.createChunckTimeout.bind(this), this.streamObj);
+  this.manifestInterval(this.createChunkTimeout.bind(this), this.streamObj);
 }
 
 manifestInterval(callback, stream) {
@@ -167,27 +182,23 @@ manifestInterval(callback, stream) {
 }
 }
 
-downloadAllChunks(t){
-
-  console.log("T IN DL chunks "+t);
-
+downloadAllChunks(obj, t){
   var self = this;
-
-  ///setTimeout(function(){
-
-            self.downloadChunk(t, 'hostA', self.bitRates[self.Q_index], false);
-            self.downloadChunk(t, 'hostB',self.bitRates[self.Q_index], false);
-            self.downloadChunk(t, 'hostC', self.bitRates[self.Q_index], false);
-            self.downloadChunk(t, 'hostD', self.bitRates[self.Q_index], false);
-            //self.timecodes.shift();
-      //  }, 2000);
+  var q = self.bitRates[self.Q_index];
+  console.log("The index when downloadchunks is called "+util.inspect(self.filesToTest[t], false, null));
+  self.downloadChunk(t, 'hostA', q, false, function(){
+    self.downloadChunk(t, 'hostB', q, false, function(){
+      self.downloadChunk(t, 'hostC', q, false, function(){
+        self.downloadChunk(t, 'hostD', q, false, function(){});
+      });
+    });
+  });
 }
 
 
 getOptions(host, interval, url, t, q){
 
 if(!host || !interval || !url || !t || !q ){
-
   return 'error';
 }
 
@@ -241,10 +252,10 @@ equivalence (obj, sizes){
   }
   var EQ = allEqual(sizes);
   if(EQ === true) {
-    console.log(this.EQUALITY_MESSAGE);
+    //.log(this.EQUALITY_MESSAGE);
     return true;
   } else {
-    console.log(this.NONEQUALITY_MESSAGE);
+    //console.log(this.NONEQUALITY_MESSAGE);
     return false;
   }
 }
@@ -253,46 +264,59 @@ fragmentRequest (options, callback, _hosts) {
   var self = this;
   request(options, function(err, res, body){
 
+
+    //console.log("ERR"+util.inspect(err, false, null));
+    //console.log("BOD"+util.inspect(res, false, null));
+
+    //return;
+    //.log("BODY"+body);
+
     if(!self.filesToTest[options.t]){
                 self.filesToTest[options.t] = _hosts;
         }
-    self.filesToTest[options.t][options.interval].chunkPath = self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4';
+        if(!self.filesToTest[options.t][options.interval].chunkPath){
+          self.filesToTest[options.t][options.interval].chunkPath = self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4';
+        }
 
 }).pipe(fs.createWriteStream(self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4')).on('close', function(){
 
-      console.log("ENTIRE OBJ "+util.inspect(self.filesToTest[options.t], false, null));
+      var s = self.filesToTest[options.t];
 
+    //  console.log(s);
 
-       if((self.filesToTest[options.t].original_ram.chunkPath && self.filesToTest[options.t].original.chunkPath) && !(self.filesToTest[options.t].hostA.chunkPath && self.filesToTest[options.t].hostB.chunkPath && self.filesToTest[options.t].hostC.chunkPath && self.filesToTest[options.t].hostD.chunkPath)){
-                //console.log(self.testedFiles.indexOf(options.t+'_originals'));
+    ///console.log((s.hostA.chunkPath !== undefined && s.hostB.chunkPath !== undefined && s.hostC.chunkPath !== undefined && s.hostD.chunkPath !== undefined) === true);
+
+      if((s.original_ram.chunkPath && s.original.chunkPath) && !(s.hostA.chunkPath || s.hostB.chunkPath || s.hostC.chunkPath || s.hostD.chunkPath)){
                 if(self.testedFiles.indexOf(options.t+'_originals') === -1){
                   self.testedFiles.push(options.t+'_originals');
                   console.log("ram test test "+options.t);
-                  callback(self.filesToTest[options.t], 'RAM_VS_DISC');
+                  //self.testFragmentEquality(self.filesToTest[options.t], 'RAM_VS_DISC');
                 }
-                //callback(self.filesToTest[options.t], 'RAM_VS_DISC');
-       } else if(self.filesToTest[options.t].hostA.chunkPath && self.filesToTest[options.t].hostB.chunkPath && self.filesToTest[options.t].hostC.chunkPath && self.filesToTest[options.t].hostD.chunkPath){
-                   if(self.testedFiles.indexOf(options.t+'_chunks') === -1){
+       } else if(s.hostA.chunkPath && s.hostB.chunkPath && s.hostC.chunkPath && s.hostD.chunkPath){
+                  if(self.testedFiles.indexOf(options.t+'_chunks') === -1){
                     self.testedFiles.push(options.t+'_chunks');
-                   console.log("chunk test "+options.t);
-                    callback(self.filesToTest[options.t], 'ALL CHUNKS');
+                    console.log("chunk test "+options.t);
+                    //self.testFragmentEquality(self.filesToTest[options.t], 'ALL CHUNKS');
                    }
 
        }
+
+       callback(s, options.t);
     });
 }
-downloadChunk (time, interval, qual, sub){
+downloadChunk (time, interval, qual, sub, callback){
       let url = this.buildChunkUrl(this.streamObj, qual, time, sub);
       let options = this.getOptions(this.streamObj.host, interval, url, time, qual);
 
       if(options !== 'error'){
-            this.fragmentRequest(options, this.testFragmentEquality.bind(this), this.hosts);
+            //console.log("The CB "+util.inspect(callback, false, null));
+            this.fragmentRequest(options, callback.bind(this), this.hosts);
       }
 }
 
 relocateNonEqualFragments (obj){
 
-  console.log("THE OBJ"+ util.inspect(obj, false, null));
+  //console.log("THE OBJ"+ util.inspect(obj, false, null));
 
   for(var key in obj){
     if(obj.hasOwnProperty(key) && obj[key] !== ''  ){
@@ -300,7 +324,6 @@ relocateNonEqualFragments (obj){
           //console.log("S "+util.inspect(s, false, null));
           if(s.chunkPath){
               var bits = s.chunkPath.split('/');
-              console.log("bits "+util.inspect(bits, false, null));
               var host = bits[2];
               var fileName = bits[3];
               fs.createReadStream(obj[key].chunkPath).pipe(fs.createWriteStream('./fragments/non-equals/'+host+'_'+fileName));
@@ -315,6 +338,8 @@ testFragmentEquality (obj, testid){
   //console.log("The obj"+ util.inspect(obj, false, null))
 
   //console.log("TEST TEST OBJ "+this);
+
+  this.consoleToggle(true);
 
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
@@ -352,7 +377,7 @@ testFragmentEquality (obj, testid){
           this.relocateNonEqualFragments(obj);
       } else {
           str+=' - '+ this.EQUALITY_MESSAGE;
-          console.log(str);
+          //console.log(str);
           this.log(str);
       }
     }
@@ -360,7 +385,9 @@ testFragmentEquality (obj, testid){
 
 
 downloadManifest(callback, streamObj){
+
   var self = this;
+  self.consoleToggle(false);
   var url = this.buildManifestUrl(streamObj);
   request.get(url, function(err,res,body) {
 
@@ -378,12 +405,12 @@ downloadManifest(callback, streamObj){
                 console.log(self.MANIFEST_SUCCESS);
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                 let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
-                //self.timecodes.push(parseInt(offSetChunk));
-                //self.downloadChunk(parseInt(offSetChunk), 'original',self.bitRates[self.Q_index]);
-                self.downloadChunk(offSetChunk, 'original', self.bitRates[self.Q_index], false);
-                self.downloadChunk(offSetChunk, 'original_ram', self.bitRates[self.Q_index], true); // the chunk in RAM
-                //callback(offSetChunk); // set up intervalB for the chunks in 1 min from now
-              }
+                let q = self.bitRates[self.Q_index];
+                self.downloadChunk(offSetChunk, 'original', q, false, function(){
+                  self.downloadChunk(offSetChunk, 'original_ram', q, true, callback.bind(this)); // the chunk in RAM
+                });
+              self.consoleToggle(true);
+            }
           }.bind(this));
 
 
@@ -440,7 +467,7 @@ downloadManifest(callback, streamObj){
          })
        }
        if(array.length >= self.offSetBufferLength) {
-         console.log(self.UNLINK_FRAGMENT_MESSAGE+" path");
+         //console.log(self.UNLINK_FRAGMENT_MESSAGE+" path");
          remove();
        }
      }
