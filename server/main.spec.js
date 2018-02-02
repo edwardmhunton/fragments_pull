@@ -8,16 +8,21 @@ describe("FragmentPullComparison", function(){
   it("Parses the stream string and returns an object", function(){
     let testPath = 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
     let FPC = new FragmentPullComparison();
-    assert.deepEqual(FPC.streamParse(testPath),{'host':'skysportsmainevent-go-hss.ak-cdn.skydvn.com', 'dir1':'z2skysportsmainevent', 'dir2':'1301','path':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301'});
+    assert.deepEqual(FPC.streamParse(testPath),{'host':'skysportsmainevent-go-hss.ak-cdn.skydvn.com', 'dir1':'z2skysportsmainevent', 'dir2':'1301','path':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301', 'substr':'ss/30/'});
   })
 
   it("Is passed host, interval name and url and returns options for a request", function(){
-
+//host, interval, url, t, q
       let FPC = new FragmentPullComparison();
       let host = 'sdjdskjhvx';
-      assert.deepEqual(FPC.getOptions(host, 'original', 'jgfsdhfkdshbf'),{
+      assert.deepEqual(FPC.getOptions(host, 'original', 'http://....','3847659734658',6),{
         time: true,
-        url: 'jgfsdhfkdshbf',
+        t: '3847659734658',
+        url: 'http://....',
+        q:6,
+        interval: 'original',
+        method: 'GET',
+        host: host,
         method: 'GET',
         headers: {
             'Accept': 'application/json',
@@ -31,13 +36,13 @@ describe("FragmentPullComparison", function(){
       it('Is sent parts of a path to build and returns the first part of the url', function(){
               let FPC = new FragmentPullComparison();
               let testStreamObj = {'host':'skysportsmainevent-go-hss.ak-cdn.skydvn.com', 'dir1':'z2skysportsmainevent', 'dir2':'1301','path':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301'};
-              assert.deepEqual(FPC.buildBaseUrl(testStreamObj), 'http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml');
+              assert.deepEqual(FPC.buildBaseUrl(testStreamObj, false), 'http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml');
       })
 
       it('Is sent parts of a path to build and returns the first part of the url', function(){
               let FPC = new FragmentPullComparison();
               let testStreamObj = {'host':'skysportsmainevent-go-hss.ak-cdn.skydvn.com', 'dir1':'z2skysportsmainevent', 'dir2':'1301','path':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301'};
-              assert.deepEqual(FPC.buildManifestUUrl(testStreamObj), 'http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/Manifest');
+              assert.deepEqual(FPC.buildManifestUrl(testStreamObj), 'http://skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301.isml/Manifest');
       })
 
       it('sent the streamObj and builds framenent path', function(){

@@ -264,15 +264,6 @@ fragmentRequest (options, callback, _hosts) {
   var self = this;
   request(options, function(err, res, body){
 
-  //  console.log(options.url);
-
-
-    //console.log("ERR"+util.inspect(err, false, null));
-    //console.log("BOD"+util.inspect(res, false, null));
-
-    //return;
-    //.log("BODY"+body);
-
 
 
 
@@ -403,7 +394,7 @@ testFragmentEquality (obj, testid){
 downloadManifest(callback, streamObj){
 
   var self = this;
-  self.consoleToggle(false);
+  self.consoleToggle(true);
   var url = this.buildManifestUrl(streamObj);
   request.get(url, function(err,res,body) {
 
@@ -412,7 +403,6 @@ downloadManifest(callback, streamObj){
              const errFunc = function(){
                 console.log(self.MANIFEST_WARNING);
                 self.log(self.MANIFEST_WARNING+url);
-                //clearInterval(self.intervalA);
                 return;
               }
               if(err !== null || res.statusCode !== 200){
