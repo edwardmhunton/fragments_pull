@@ -37,6 +37,8 @@ class FragmentPullComparison {
 
     this.bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
 
+    this.starti = null;
+
     this.hosts = {
       'non-equals':{
         'ip': ''
@@ -56,6 +58,8 @@ class FragmentPullComparison {
       }
     }
 
+    this.sceduleCount = 0;
+
     this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
 
     this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
@@ -63,6 +67,28 @@ class FragmentPullComparison {
     this.Q_index = process.argv[4] || 6;
 
     this.mode = process.argv[5] || 'debug';
+
+    //this.scedule = process.argv[6] || [];
+    this.scedule = [{
+
+    'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
+    'startTime': '1517847000000',
+      'endTime': '1517847200000'
+
+  }, {
+
+  'stream':'origin1.stage16.stage-hss.skydvn.com/stage16/1752',
+  'startTime': '1517847400000',
+  'endTime': '1517847600000'
+
+  },
+
+  {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
+  'startTime': '1517847800000',
+    'endTime': '1517848000000'
+
+  }
+]
 
     this.fragpath = './fragments/';
 
@@ -77,7 +103,7 @@ class FragmentPullComparison {
 
     this.streamObj = {};
 
-    this.offSetBufferLength = 4; // how many files retain as a buffer before deleting them
+    this.offSetBufferLength = 15; // how many files retain as a buffer before deleting them
 
     this.oldConsoleLog = null;
 
@@ -167,12 +193,114 @@ createLogFile(){
   });
 }
 
+stopManifestInterval(){
+
+  console.log("stop manifest interval");
+  this.log('TEST ENDED: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n')
+
+  clearInterval(this.intervalA);
+
+  console.log(this.sceduleCount);
+  console.log(this.scedule.length);
+
+
+    if(this.sceduleCount < this.scedule.length-1){
+      this.createScedule()
+    }
+
+
+}
+
+stopScedule(scope){
+
+  var self = this;
+
+  console.log("SELF "+util.inspect(self, false, null))
+
+  var stopi = setInterval(function(){
+
+  var d = +new Date();
+
+  console.log("stopi intrval"+self.sceduleCount);
+    console.log("stopi intrval"+self.scedule.length);
+  console.log(util.inspect(self.scedule[1], false, null));
+  console.log("Curre "+d);
+  console.log("Start "+self.scedule[self.sceduleCount].startTime);
+  console.log(parseInt(self.scedule[self.sceduleCount].startTime) > d);
+
+
+
+if(d > parseInt(self.scedule[self.sceduleCount].endTime)){
+
+  console.log("stopi "+stopi);
+  clearInterval(stopi);
+  self.stopManifestInterval();
+
+   }
+
+}, 1000)}
+
+createScedule(){
+
+  var self = this;
+
+  var startInt = null;
+
+  function stopScedule(){
+
+    self.stopScedule(self);
+
+  }
+
+  startInt = setInterval(function(){
+
+  var d = +new Date();
+
+  if(self.scedule[self.sceduleCount]){
+
+
+
+  console.log("Curre "+d);
+  console.log("Start "+self.scedule[self.sceduleCount].startTime);
+  console.log(parseInt(self.scedule[self.sceduleCount].startTime) > d);
+
+  if( d > parseInt(self.scedule[self.sceduleCount].startTime)){
+
+
+    if(startInt){
+
+          clearInterval(startInt);
+
+     }
+    self.sceduleCount++;
+    self.manifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
+    self.stopScedule();
+
+  } else {
+    self.sceduleCount++;
+  }
+
+}
+
+}, 1000)
+
+
+
+
+
+}
+
 
 afterFolders(){
-  this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
+  if(this.scedule.length === 0){
+        this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
+  } else {
+    this.createScedule();
+  }
 }
 
 manifestInterval(callback, stream) {
+  console.log("mani");
   var self = this;
     if(!this.intervalA){
       this.intervalA = setInterval(function(){
@@ -488,7 +616,7 @@ downloadManifest(callback, streamObj){
        }
        if(array.length >= self.offSetBufferLength) {
          //console.log(self.UNLINK_FRAGMENT_MESSAGE+" path");
-         remove();
+         //remove();
        }
      }
 
