@@ -69,23 +69,31 @@ class FragmentPullComparison {
     this.mode = process.argv[5] || 'debug';
 
     //this.scedule = process.argv[6] || [];
+
+    var d = +new Date();
+
+    var len = 6000;
+
+    var d1 = d+len, d2= d+(len*2), d3 = d+(len*6), d4 = d+(len*10), d5 = d+(len*15), d6 = d+(len*20);
+
+
     this.scedule = [{
 
     'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-    'startTime': '1517847000000',
-      'endTime': '1517847200000'
+    'startTime': '1517925600000',
+    'endTime':   '1517839800000'
 
   }, {
 
   'stream':'origin1.stage16.stage-hss.skydvn.com/stage16/1752',
-  'startTime': '1517847400000',
-  'endTime': '1517847600000'
+  'startTime': '1517840100000',
+  'endTime': '1517840400000'
 
   },
 
   {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-  'startTime': '1517847800000',
-    'endTime': '1517848000000'
+  'startTime': '1517841000000',
+    'endTime': '1517841600000'
 
   }
 ]
@@ -110,7 +118,7 @@ class FragmentPullComparison {
   }
 
 consoleToggle(toggle){
-  if(toggle){
+  /*if(toggle){
     if(this.oldConsoleLog === null){
       return;
     }
@@ -118,7 +126,7 @@ consoleToggle(toggle){
     } else {
       this.oldConsoleLog = console.log;
       console.log = function(){};
-    }
+    }*/
 }
 
 
@@ -196,97 +204,37 @@ createLogFile(){
 stopManifestInterval(){
 
   console.log("stop manifest interval");
-  this.log('TEST ENDED: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n')
-
+  this.log('TEST ENDED: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n');
   clearInterval(this.intervalA);
-
-  console.log(this.sceduleCount);
-  console.log(this.scedule.length);
-
-
-    if(this.sceduleCount < this.scedule.length-1){
-      this.createScedule()
-    }
-
+  this.intervalA = null;
+  console.log("The count"+this.sceduleCount);
+  console.log("The length"+this.scedule.length);
+  this.sceduleCount++;
+  if(this.sceduleCount < this.scedule.length){
+    var t = this.scedule[this.sceduleCount].startTime;
+    var now = +new Date();
+    var startTime = t - now;
+    this.startEvent(startTime, this.scedule[this.sceduleCount].stream);
+  }
+}
+stopEvent(stopTime){
+  var self = this;
+  console.log("timeout until stop"+stopTime/10);
+  let stopInt = setTimeout(function(){
+    self.stopManifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
+  }, stopTime);
 
 }
+startEvent(startTime, stream){
 
-stopScedule(scope){
-
+  console.log("STREAM"+stream);
   var self = this;
-
-  console.log("SELF "+util.inspect(self, false, null))
-
-  var stopi = setInterval(function(){
-
-  var d = +new Date();
-
-  console.log("stopi intrval"+self.sceduleCount);
-    console.log("stopi intrval"+self.scedule.length);
-  console.log(util.inspect(self.scedule[1], false, null));
-  console.log("Curre "+d);
-  console.log("Start "+self.scedule[self.sceduleCount].startTime);
-  console.log(parseInt(self.scedule[self.sceduleCount].startTime) > d);
-
-
-
-if(d > parseInt(self.scedule[self.sceduleCount].endTime)){
-
-  console.log("stopi "+stopi);
-  clearInterval(stopi);
-  self.stopManifestInterval();
-
-   }
-
-}, 1000)}
-
-createScedule(){
-
-  var self = this;
-
-  var startInt = null;
-
-  function stopScedule(){
-
-    self.stopScedule(self);
-
-  }
-
-  startInt = setInterval(function(){
-
-  var d = +new Date();
-
-  if(self.scedule[self.sceduleCount]){
-
-
-
-  console.log("Curre "+d);
-  console.log("Start "+self.scedule[self.sceduleCount].startTime);
-  console.log(parseInt(self.scedule[self.sceduleCount].startTime) > d);
-
-  if( d > parseInt(self.scedule[self.sceduleCount].startTime)){
-
-
-    if(startInt){
-
-          clearInterval(startInt);
-
-     }
-    self.sceduleCount++;
+  console.log("timeout until start"+startTime/10);
+  self.streamObj = self.streamParse(stream);
+  let startInt = setTimeout(function(){
+    self.log('TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+self.streamObj.path+' , BITRATE: '+self.bitRates[self.Q_index]+', FRAGMENT OFFSET: '+self.fragmentOffSet);
     self.manifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
-    self.stopScedule();
-
-  } else {
-    self.sceduleCount++;
-  }
-
-}
-
-}, 1000)
-
-
-
-
+  }, startTime);
 
 }
 
@@ -295,18 +243,31 @@ afterFolders(){
   if(this.scedule.length === 0){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
   } else {
-    this.createScedule();
+    var t = this.scedule[this.sceduleCount].startTime;
+    var now = +new Date();
+    var startTime = t - now;
+    this.startEvent(startTime, this.scedule[this.sceduleCount].stream);
   }
 }
 
 manifestInterval(callback, stream) {
-  console.log("mani");
+
   var self = this;
-    if(!this.intervalA){
-      this.intervalA = setInterval(function(){
+    console.log("mani: "+self);
+    console.log("self.intervalA "+self.intervalA);
+    if(!self.intervalA){
+      self.intervalA = setInterval(function(){
         self.downloadManifest(callback, stream);
       }, self.manifestIntervalLength);
-}
+    }
+    if(this.scedule){
+      if(this.sceduleCount < this.scedule.length){
+        var t = this.scedule[this.sceduleCount].endTime;
+        var now = +new Date();
+        var stopTime = t - now;
+        this.stopEvent(stopTime);
+      }
+  }
 }
 
 downloadAllChunks(obj, t){
