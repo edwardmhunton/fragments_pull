@@ -78,31 +78,31 @@ class FragmentPullComparison {
 
     //this.scedule = process.argv[6] || [];
 
-    var d = +new Date();
+    /*var d = +new Date();
 
     var len = 6000;
 
-    var d1 = d+len, d2= d+(len*2), d3 = d+(len*6), d4 = d+(len*10), d5 = d+(len*15), d6 = d+(len*20);
+    var d1 = d+len, d2= d+(len*2), d3 = d+(len*6), d4 = d+(len*10), d5 = d+(len*15), d6 = d+(len*20);*/
 
    //* Correct length 1517841000000 **/
 
     this.scedule = [
 
       {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-      'startTime': '1517995918000',
-      'endTime':   '1517996158000'
+      'startTime': '1517997600000',
+      'endTime':   '1517997900000'
 
     }, {
 
     'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-    'startTime': '1517996278000',
-    'endTime':   '1517996398000'
+    'startTime': '1517998020000',
+    'endTime':   '1517998140000'
 
   }, {
 
   'stream':'origin1.stage16.stage-hss.skydvn.com/stage16/1752',
-  'startTime': '1517996518000',
-  'endTime':   '1517996938000'
+  'startTime': '1517998260000',
+  'endTime':   '1517998500000'
 
   }
 
