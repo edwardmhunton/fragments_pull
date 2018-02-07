@@ -61,4 +61,8 @@ send(obj){
 
 }
 
+var mail = new Mail();
+
+mail.send();
+
 module.exports = Mail;
