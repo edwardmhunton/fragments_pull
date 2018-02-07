@@ -9,9 +9,9 @@
   "fragmentLength":20000000,
   "bitRates" : ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"],
   "schedule": [
-    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518019200000", "endTime":"1518019440000"},
-    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518019560000", "endTime":"1518019740000"},
-    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518019920000", "endTime":"1518020160000"}
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518020160000", "endTime":"1518030960000"},
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518020460000", "endTime":"1518020640000"},
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518020820000", "endTime":"1518021000000"}
   ],
   "mail":{
     "transporterAuth":{
