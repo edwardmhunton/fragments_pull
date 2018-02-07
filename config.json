@@ -1,0 +1,23 @@
+{ "config": {
+  "__commemts":"testIds can be RAM_VS_DISC, ALL_CHUNKS or both, Q_Index can be 0-6 (6 is top), fragmentOffSet is how close to 'live', offSetBufferLength is number of chunks kept on dsic before deletion, recipiants are people to be mailed the logs when the test completes",
+  "testIds": ["RAM_VS_DISC"],
+  "Q_index":6,
+  "fragmentOffSet":53,
+  "offSetBufferLength":20,
+  "manifestIntervalLength":2000,
+  "mainIntervalLength":60000,
+  "fragmentLength":20000000,
+  "bitRates" : ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"],
+  "schedule": [
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518014280000", "endTime":"1518014400000"},
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518014520000", "endTime":"1518014700000"},
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518014820000", "endTime":"1518014940000"}
+  ],
+  "mail":{
+    "transporterAuth":{
+        "user": "edwardhunton@gmail.com",
+        "pass": "L0llyp0p2"
+    }, "recipiants":["edward.hunton@sky.uk"]
+  }
+
+}}
