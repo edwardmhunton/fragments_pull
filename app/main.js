@@ -84,8 +84,6 @@ class FragmentPullComparison {
 
     this.sceduleCount = 0;
 
-    this.transporter = {};
-
     this.fragpath = './fragments/';
 
     this.log_rvd = './logs/RAM_VS_DISC_logFile.txt';
