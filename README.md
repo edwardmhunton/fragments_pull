@@ -1,4 +1,4 @@
-steps to run
+//Node Js application for comparing the size of HSS fragments//
 
 prerequisites: Node version > 8, new npm
 
