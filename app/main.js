@@ -20,6 +20,12 @@ import watch from 'watchjs';
 
 import Mail from './Mail';
 
+/*    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518020160000", "endTime":"1518030960000"},
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518020460000", "endTime":"1518020640000"},
+    {"stream":"skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301", "startTime":"1518020820000", "endTime":"1518021000000"}
+
+    */
+
 class FragmentPullComparison {
 
   constructor() {
