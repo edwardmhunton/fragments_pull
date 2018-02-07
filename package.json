@@ -12,7 +12,11 @@
   "dependencies": {
     "chokidar": "^2.0.0",
     "dateformat": "^3.0.2",
+    "events": "^2.0.0",
     "fs": "0.0.1-security",
+    "node-mailer": "^0.1.1",
+    "nodemailer": "^4.4.2",
+    "nodemailer-smtp-transport": "^2.7.4",
     "path": "^0.12.7",
     "request": "^2.83.0",
     "request-promise": "^4.2.2",

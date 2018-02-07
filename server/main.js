@@ -1,5 +1,11 @@
 import fs from 'fs';
 
+var nodemailer = require('node-mailer');
+
+import smtpTransport from 'nodemailer-smtp-transport';
+
+import events from 'events';
+
 import util from 'util';
 
 import request from 'request';
@@ -12,7 +18,7 @@ import chokidar from 'chokidar';
 
 import rimraf from 'rimraf';
 
-import dateFormat from 'dateFormat';
+import dateFormat from 'dateformat';
 
 import watch from 'watchjs';
 
@@ -68,6 +74,8 @@ class FragmentPullComparison {
 
     this.mode = process.argv[5] || 'debug';
 
+    this.transporter = {};
+
     //this.scedule = process.argv[6] || [];
 
     var d = +new Date();
@@ -76,26 +84,29 @@ class FragmentPullComparison {
 
     var d1 = d+len, d2= d+(len*2), d3 = d+(len*6), d4 = d+(len*10), d5 = d+(len*15), d6 = d+(len*20);
 
+   //* Correct length 1517841000000 **/
 
-    this.scedule = [{
+    this.scedule = [
+
+      {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
+      'startTime': '1517995918000',
+      'endTime':   '1517996158000'
+
+    }, {
 
     'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-    'startTime': '1517925600000',
-    'endTime':   '1517839800000'
+    'startTime': '1517996278000',
+    'endTime':   '1517996398000'
 
   }, {
 
   'stream':'origin1.stage16.stage-hss.skydvn.com/stage16/1752',
-  'startTime': '1517840100000',
-  'endTime': '1517840400000'
-
-  },
-
-  {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-  'startTime': '1517841000000',
-    'endTime': '1517841600000'
+  'startTime': '1517996518000',
+  'endTime':   '1517996938000'
 
   }
+
+
 ]
 
     this.fragpath = './fragments/';
@@ -165,13 +176,80 @@ setUpWatchers(){
     }
 }
 
+inputmail(i, o){
+  ///////Email
+  const from = 'edwardhunton@gmail.com';
+  const to  = i;
+  const subject  = "Fragment Comparison";
+  const text = o.testStream+" : "+o.testDate;
+  const html = '<b>Test Performed</b>';
+  var mailOption = {
+         from: from,
+         to:  to,
+         subject: subject,
+         text: text,
+         html: html,
+         attachments:[
+           {filename: 'test.txt',
+            path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
+          }]
+     }
+    return mailOption;
+
+}
+//'Duncan.Thompson@sky.uk'
+        send(obj){
+
+          let maillist = ['edwardhunton@gmail.com',
+                          'edward.hunton@sky.uk',
+                          'Duncan.Thompson@sky.uk']
+
+
+                            for(var i in maillist){
+
+                              this.transporter.sendMail(this.inputmail(maillist[i], obj),function(err,success){
+                              if(err){
+                                //  events.emit('error', err);
+                              }
+                              if(success){
+                                //  events.emit('success', success);
+                              }
+    });
+
+  }
+}
+
 beginTest(){
+
+  var nodemailer = require("nodemailer");
+  this.transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'edwardhunton@gmail.com',
+        pass: 'L0llyp0p2'
+    }
+});
+
+
+
+
+
+
+
+
+
+
     this.streamObj = this.streamParse(this.streamString);
     this.createFolder('./', 'logs', this.createLogFile.bind(this));
     this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
     this.createFolder(this.fragpath, 'non-equals-ram_vs_disc', function(){});
     this.createFolder(this.fragpath, 'non-equals-all_chunks', this.afterFolders.bind(this));
+
+    //var d = +new Date();
+
+//this.send({'testStream':this.streamObj.path, 'testDate': d});
+
   }.bind(this));
 }
 
@@ -203,8 +281,11 @@ createLogFile(){
 
 stopManifestInterval(){
 
+  var d = +new Date()
+
   console.log("stop manifest interval");
-  this.log('TEST ENDED: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n');
+  this.log('TEST ENDED: '+d+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n');
+  this.send({'testStream':this.streamObj.path, 'testDate': d});
   clearInterval(this.intervalA);
   this.intervalA = null;
   console.log("The count"+this.sceduleCount);
@@ -214,6 +295,8 @@ stopManifestInterval(){
     var t = this.scedule[this.sceduleCount].startTime;
     var now = +new Date();
     var startTime = t - now;
+    console.log("T: "+t);
+    console.log("N: "+now);
     this.startEvent(startTime, this.scedule[this.sceduleCount].stream);
   }
 }
@@ -265,6 +348,8 @@ manifestInterval(callback, stream) {
         var t = this.scedule[this.sceduleCount].endTime;
         var now = +new Date();
         var stopTime = t - now;
+        console.log("T: "+t);
+        console.log("N: "+now);
         this.stopEvent(stopTime);
       }
   }
@@ -475,7 +560,7 @@ testFragmentEquality (obj, testid){
 
         console.log("The sorted arrar "+util.inspect(sortable, false, null));
 
-        this.relocateNonEqualFragments(obj, testid);
+      ///  this.relocateNonEqualFragments(obj, testid);
         str+=' - '+ this.EQUALITY_MESSAGE;
         this.log(str, testid);
       }
