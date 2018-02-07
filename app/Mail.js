@@ -7,9 +7,11 @@ class Mail {
 
   constructor(recipiants, tranporterAuth, files) {
 
-        this.transporter = {};
+              this.transporter = {};
 
               var nodemailer = require('node-mailer');
+
+              console.log(tranporterAuth)
 
               this.transporter = nodemailer.createTransport({
                 service: 'gmail',
