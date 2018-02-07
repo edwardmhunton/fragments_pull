@@ -1,6 +1,8 @@
-import smtpTransport from 'nodemailer-smtp-transport';
 
-var nodemailer = require('node-mailer');
+
+var nodemailer = require("nodemailer");
+
+import smtpTransport from 'nodemailer-smtp-transport';
 
 class Mail {
 
@@ -9,9 +11,7 @@ class Mail {
 
               this.transporter = {};
 
-              var nodemailer = require('node-mailer');
-
-              console.log(tranporterAuth)
+              var nodemailer = require("nodemailer");
 
               this.transporter = nodemailer.createTransport({
                 service: 'gmail',
@@ -38,7 +38,7 @@ inputMail(i, o){
          subject: subject,
          text: text,
          html: html,
-         attachments:files
+         attachments:this.files
      }
     return mailOption;
 
@@ -46,7 +46,7 @@ inputMail(i, o){
 
 send(obj){
   for(var i in this.recipiants){
-    this.transporter.sendMail(this.inputmail(this.recipiants[i], obj),function(err,success){
+    this.transporter.sendMail(this.inputMail(this.recipiants[i], obj),function(err,success){
                 if(err){
                   //  events.emit('error', err);
                 }

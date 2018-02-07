@@ -1,5 +1,9 @@
 import fs from 'fs';
 
+//var nodemailer = require('node-mailer');
+
+
+
 import events from 'events';
 
 import util from 'util';
@@ -18,13 +22,9 @@ import dateFormat from 'dateformat';
 
 import watch from 'watchjs';
 
-import Mail from './Mail';
-
 class FragmentPullComparison {
 
   constructor() {
-
-    this.config = require('../config.json');
 
     this.MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
     this.MANIFEST_SUCCESS = "MANIFEST SUCCESSFULLY DOWNLOADED";
@@ -36,8 +36,14 @@ class FragmentPullComparison {
     this.ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
     this.UNLINK_FRAGMENT_MESSAGE = "FRAGMENT HAS BEEN DELETED";
 
+    this.filesToTest = {};
     this.testedFiles = []; // array of the files that have been tested
-    this.intervalA; // the manifest interval
+    this.timecodes = []; // taken from the hss manifests
+    this.intervalA; // the manifest
+
+    this.bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
+
+    this.starti = null;
 
     this.hosts = {
       'non-equals':{
@@ -58,13 +64,7 @@ class FragmentPullComparison {
       }
     }
 
-    // DEFAULT VALUES /////////// -- overiden by values in config.json
-
-    this.mainIntervalLength = 60000; //60 secs
-
-    this.manifestIntervalLength = 2000; // 2 sec
-
-    this.fragmentLength = 20000000; // from oldest chunk to live
+    this.sceduleCount = 0;
 
     this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
 
@@ -74,36 +74,49 @@ class FragmentPullComparison {
 
     this.mode = process.argv[5] || 'debug';
 
-    this.offSetBufferLength = 15; // how many files retain as a buffer before deleting them
+    this.transporter = {};
 
-    this.bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
+    this.scedule = [
 
-    this.testIds = ["RAM_VS_DISC", "ALL_CHUNKS"];
+      {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
+      'startTime': '1517997600000',
+      'endTime':   '1517997900000'
 
-    ///////////////////////////////////////////////////
+    }, {
 
-    this.sceduleCount = 0;
+    'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
+    'startTime': '1517998020000',
+    'endTime':   '1517998140000'
+
+  }, {
+
+  'stream':'origin1.stage16.stage-hss.skydvn.com/stage16/1752',
+  'startTime': '1517998260000',
+  'endTime':   '1517998500000'
+
+  }
+
+
+]
 
     this.fragpath = './fragments/';
 
     this.log_rvd = './logs/RAM_VS_DISC_logFile.txt';
     this.log_ac = './logs/ALL_CHUNKS_logFile.txt';
 
+    this.mainIntervalLength = 60000; //60 secs
+
+    this.manifestIntervalLength = 2000; // 2 sec
+
+    this.fragmentLength = 20000000; // from oldest chunk to live
+
     this.streamObj = {};
+
+    this.offSetBufferLength = 15; // how many files retain as a buffer before deleting them
 
     this.oldConsoleLog = null;
 
   }
-
-setConstants(obj){
-
-    for(var key in obj){
-      if(obj.hasOwnProperty(key) && obj[key] !== ''){
-          //console.log("OB KEY "+key+" : "+util.inspect(obj[key], false, null));
-          this[key] = obj[key];
-      }
-    }
-}
 
 consoleToggle(toggle){
   if(toggle){
@@ -135,6 +148,9 @@ consoleToggle(toggle){
       streamObj.dir2 = subpaths[2];
       streamObj.path = streamString;
       streamObj.substr = 'ss/30/';
+
+      //hosts.original.ip = streamObj.host; //******** IMPORTANT TO SET THIS *************////
+
       return streamObj;
 
 }
@@ -150,32 +166,79 @@ setUpWatchers(){
     }
 }
 
-setUpMail(recipiants){
-
-
-  var files = [
-    {filename: 'test.txt',
-     path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
-   }]
-
-  this.mail = new Mail(recipiants, this.mail.transporterAuth, files);
+inputmail(i, o){
+  ///////Email
+  const from = 'edwardhunton@gmail.com';
+  const to  = i;
+  const subject  = "Fragment Comparison";
+  const text = o.testStream+" : "+o.testDate;
+  const html = '<b>Test Performed</b>';
+  var mailOption = {
+         from: from,
+         to:  to,
+         subject: subject,
+         text: text,
+         html: html,
+         attachments:[
+           {filename: 'test.txt',
+            path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
+          }]
+     }
+    return mailOption;
 
 }
+//'Duncan.Thompson@sky.uk'
+        send(obj){
+
+          let maillist = ['edwardhunton@gmail.com',
+                          'edward.hunton@sky.uk',
+                          'Duncan.Thompson@sky.uk']
 
 
+                            for(var i in maillist){
+
+                              this.transporter.sendMail(this.inputmail(maillist[i], obj),function(err,success){
+                              if(err){
+                                //  events.emit('error', err);
+                              }
+                              if(success){
+                                //  events.emit('success', success);
+                              }
+    });
+
+  }
+}
 
 beginTest(){
 
-  if(this.config){this.setConstants(this.config.config)};
+  var nodemailer = require("nodemailer");
+  this.transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'edwardhunton@gmail.com',
+        pass: 'L0llyp0p2'
+    }
+});
+
+
+
+
+
+
+
+
+
+
     this.streamObj = this.streamParse(this.streamString);
     this.createFolder('./', 'logs', this.createLogFile.bind(this));
     this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
     this.createFolder(this.fragpath, 'non-equals-ram_vs_disc', function(){});
     this.createFolder(this.fragpath, 'non-equals-all_chunks', this.afterFolders.bind(this));
-    if(this.recipiants){
-      this.setUpMail(this.mail.recipiants);
-    };
+
+    //var d = +new Date();
+
+//this.send({'testStream':this.streamObj.path, 'testDate': d});
 
   }.bind(this));
 }
@@ -212,17 +275,19 @@ stopManifestInterval(){
 
   console.log("stop manifest interval");
   this.log('TEST ENDED: '+d+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n');
-
+  this.send({'testStream':this.streamObj.path, 'testDate': d});
   clearInterval(this.intervalA);
   this.intervalA = null;
+  console.log("The count"+this.sceduleCount);
+  console.log("The length"+this.scedule.length);
   this.sceduleCount++;
   if(this.sceduleCount < this.scedule.length){
     var t = this.scedule[this.sceduleCount].startTime;
     var now = +new Date();
     var startTime = t - now;
+    console.log("T: "+t);
+    console.log("N: "+now);
     this.startEvent(startTime, this.scedule[this.sceduleCount].stream);
-  } else if(this.sceduleCount === this.scedule.length && this.mail){
-    this.mail.send({'testStream':this.streamObj.path, 'testDate': d}); // only send the logs when final test is compleate
   }
 }
 stopEvent(stopTime){
@@ -248,8 +313,7 @@ startEvent(startTime, stream){
 
 
 afterFolders(){
-  console.log("The sced: "+util.inspect(this.scedule, false, null));
-  if(this.scedule.length === 0 ){
+  if(this.scedule.length === 0){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
   } else {
     var t = this.scedule[this.sceduleCount].startTime;
@@ -262,6 +326,8 @@ afterFolders(){
 manifestInterval(callback, stream) {
 
   var self = this;
+    console.log("mani: "+self);
+    console.log("self.intervalA "+self.intervalA);
     if(!self.intervalA){
       self.intervalA = setInterval(function(){
         self.downloadManifest(callback, stream);
@@ -272,6 +338,8 @@ manifestInterval(callback, stream) {
         var t = this.scedule[this.sceduleCount].endTime;
         var now = +new Date();
         var stopTime = t - now;
+        console.log("T: "+t);
+        console.log("N: "+now);
         this.stopEvent(stopTime);
       }
   }
@@ -365,21 +433,21 @@ fragmentRequest (options, callback, _hosts, obj) {
       if(obj.original_ram.chunkPath !== '' && obj.original.chunkPath !== '' && hostBool) {
         if(self.testedFiles.indexOf(options.t+'_originals') === -1){
                   self.testedFiles.push(options.t+'_originals');
-                    if(self.testIds.indexOf('RAM_VS_DISC') > -1){
-                        self.testFragmentEquality({'original_ram':obj.original_ram, 'original': obj.original}, 'RAM_VS_DISC');
-                    }
+                  self.testFragmentEquality({'original_ram':obj.original_ram, 'original': obj.original}, 'RAM_VS_DISC');
                 }
 
        } else if(obj.hostA.chunkPath !== '' && obj.hostB.chunkPath !== '' && obj.hostC.chunkPath !== '' && obj.hostD.chunkPath !== ''){
                   if(self.testedFiles.indexOf(options.t+'_chunks') === -1){
                     self.testedFiles.push(options.t+'_chunks');
-                    if(self.testIds.indexOf('ALL_CHUNKS') > -1){
-                        self.testFragmentEquality(obj, 'ALL_CHUNKS');
-                    }
+                    //self.testFragmentEquality(obj, 'ALL_CHUNKS');
                    }
-                 }
+
+       }
+
        callback(obj, options.t);
-     });
+
+
+    });
 }
 downloadChunk (time, interval, qual, sub, callback, obj){
       let url = this.buildChunkUrl(this.streamObj, qual, time, sub);
@@ -523,11 +591,7 @@ downloadManifest(callback, streamObj){
 
                 let obj = {'original':{'chunkPath':''}, 'original_ram':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
                 self.downloadChunk(offSetChunk, 'original', q, false, function(){
-                  var callback;
-                  self.testIds.indexOf('ALL_CHUNKS') > -1 ? callback = self.createChunkTimeout.bind(self) : callback = function(){} ;
-
-                  self.downloadChunk(offSetChunk, 'original_ram', q, true, callback, obj); // the chunk in RAM
-
+                  self.downloadChunk(offSetChunk, 'original_ram', q, true, self.createChunkTimeout.bind(self), obj); // the chunk in RAM
                 }, obj);
               self.consoleToggle(false);
             }
@@ -550,7 +614,6 @@ downloadManifest(callback, streamObj){
 
 
    createFolder(path, name, callback) {
-     console.log()
        fs.mkdir(path+name, function(){
              callback();
        });
