@@ -4,8 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "babel-node server/main.js",
-    "test": "nyc mocha --compilers js:babel-core/register './server/*.spec.js'"
+    "start": "babel-node app/main.js",
+    "test": "nyc mocha --compilers js:babel-core/register './app/*.spec.js'"
   },
   "author": "",
   "license": "ISC",

@@ -1,9 +1,5 @@
 import fs from 'fs';
 
-var nodemailer = require('node-mailer');
-
-import smtpTransport from 'nodemailer-smtp-transport';
-
 import events from 'events';
 
 import util from 'util';
@@ -22,9 +18,13 @@ import dateFormat from 'dateformat';
 
 import watch from 'watchjs';
 
+import Mail from './Mail';
+
 class FragmentPullComparison {
 
   constructor() {
+
+    this.config = require('../config.json');
 
     this.MANIFEST_WARNING = "THERE WAS AN ISSUE DOWNLOADING THE MANIFEST";
     this.MANIFEST_SUCCESS = "MANIFEST SUCCESSFULLY DOWNLOADED";
@@ -39,11 +39,9 @@ class FragmentPullComparison {
     this.filesToTest = {};
     this.testedFiles = []; // array of the files that have been tested
     this.timecodes = []; // taken from the hss manifests
-    this.intervalA; // the manifest
+    this.intervalA; // the manifest interval
 
     this.bitRates = ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"];
-
-    this.starti = null;
 
     this.hosts = {
       'non-equals':{
@@ -64,7 +62,13 @@ class FragmentPullComparison {
       }
     }
 
-    this.sceduleCount = 0;
+    // DEFAULT VALUES /////////// -- overiden by values on scedule json
+
+    this.mainIntervalLength = 60000; //60 secs
+
+    this.manifestIntervalLength = 2000; // 2 sec
+
+    this.fragmentLength = 20000000; // from oldest chunk to live
 
     this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
 
@@ -74,49 +78,34 @@ class FragmentPullComparison {
 
     this.mode = process.argv[5] || 'debug';
 
+    this.offSetBufferLength = 15; // how many files retain as a buffer before deleting them
+
+    ///////////////////////////////////////////////////
+
+    this.sceduleCount = 0;
+
     this.transporter = {};
-
-    this.scedule = [
-
-      {'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-      'startTime': '1517997600000',
-      'endTime':   '1517997900000'
-
-    }, {
-
-    'stream':'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301',
-    'startTime': '1517998020000',
-    'endTime':   '1517998140000'
-
-  }, {
-
-  'stream':'origin1.stage16.stage-hss.skydvn.com/stage16/1752',
-  'startTime': '1517998260000',
-  'endTime':   '1517998500000'
-
-  }
-
-
-]
 
     this.fragpath = './fragments/';
 
     this.log_rvd = './logs/RAM_VS_DISC_logFile.txt';
     this.log_ac = './logs/ALL_CHUNKS_logFile.txt';
 
-    this.mainIntervalLength = 60000; //60 secs
-
-    this.manifestIntervalLength = 2000; // 2 sec
-
-    this.fragmentLength = 20000000; // from oldest chunk to live
-
     this.streamObj = {};
-
-    this.offSetBufferLength = 15; // how many files retain as a buffer before deleting them
 
     this.oldConsoleLog = null;
 
   }
+
+  setConstants(obj){
+
+    for(var key in obj){
+      if(obj.hasOwnProperty(key) && obj[key] !== ''){
+          console.log("OB KEY "+key+" : "+util.inspect(obj[key], false, null));
+          this[key] = obj[key];
+        }
+      }
+    }
 
 consoleToggle(toggle){
   if(toggle){
@@ -166,79 +155,36 @@ setUpWatchers(){
     }
 }
 
-inputmail(i, o){
-  ///////Email
-  const from = 'edwardhunton@gmail.com';
-  const to  = i;
-  const subject  = "Fragment Comparison";
-  const text = o.testStream+" : "+o.testDate;
-  const html = '<b>Test Performed</b>';
-  var mailOption = {
-         from: from,
-         to:  to,
-         subject: subject,
-         text: text,
-         html: html,
-         attachments:[
-           {filename: 'test.txt',
-            path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
-          }]
-     }
-    return mailOption;
+setUpMail(recipiants){
 
-}
-//'Duncan.Thompson@sky.uk'
-        send(obj){
+  console.log("create mail obj");
 
-          let maillist = ['edwardhunton@gmail.com',
-                          'edward.hunton@sky.uk',
-                          'Duncan.Thompson@sky.uk']
-
-
-                            for(var i in maillist){
-
-                              this.transporter.sendMail(this.inputmail(maillist[i], obj),function(err,success){
-                              if(err){
-                                //  events.emit('error', err);
-                              }
-                              if(success){
-                                //  events.emit('success', success);
-                              }
-    });
-
+  var transporterAuth = {
+      user: 'edwardhunton@gmail.com',
+      pass: 'L0llyp0p2'
   }
+
+  var files = [
+    {filename: 'test.txt',
+     path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
+   }]
+
+  this.mail = new Mail(recipiants, transporterAuth, files);
+
 }
+
+
 
 beginTest(){
 
-  var nodemailer = require("nodemailer");
-  this.transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'edwardhunton@gmail.com',
-        pass: 'L0llyp0p2'
-    }
-});
-
-
-
-
-
-
-
-
-
-
+  if(this.config){this.setConstants(this.config.config)};
     this.streamObj = this.streamParse(this.streamString);
     this.createFolder('./', 'logs', this.createLogFile.bind(this));
     this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
     this.createFolder(this.fragpath, 'non-equals-ram_vs_disc', function(){});
     this.createFolder(this.fragpath, 'non-equals-all_chunks', this.afterFolders.bind(this));
-
-    //var d = +new Date();
-
-//this.send({'testStream':this.streamObj.path, 'testDate': d});
+    if(this.recipiants){this.setUpMail(this.recipiants)};
 
   }.bind(this));
 }
@@ -313,6 +259,7 @@ startEvent(startTime, stream){
 
 
 afterFolders(){
+  console.log("The sced: "+util.inspect(this.scedule, false, null));
   if(this.scedule.length === 0){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
   } else {
