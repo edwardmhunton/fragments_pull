@@ -6,6 +6,8 @@ import util from 'util';
 
 import request from 'request';
 
+import externalip from 'externalip';
+
 import {parseString} from 'xml2js';
 
 import path from 'path';
@@ -37,6 +39,30 @@ class FragmentPullComparison {
     this.UNLINK_FRAGMENT_MESSAGE = "FRAGMENT HAS BEEN DELETED";
 
     this.testedFiles = []; // array of the files that have been tested
+
+    this.hourlySummaryTemplate = {
+                                  "time":"",
+                                  "comparisions":0,
+                                  "equal":0,
+                                  "non-equal":0,
+                                  "percentage_non_equal":0,
+                                  "percentage_hourly_change":0
+                                }
+
+
+    this.testData = {"test":{
+
+                  "start_date": "",
+                  "stream": "",
+                  "log_location": "",
+                  "comparisions_total": 0,
+                  "equal": 0,
+                  "non_equal": 0,
+                  "percentage_non_equal": 0,
+                  "hourly_summaries":new Array(),
+                  "non_equal_fragments":new Array()
+
+                  }};
 
     // best Epoh time converter https://www.epochconverter.com/
     this.hosts = {
@@ -92,6 +118,63 @@ class FragmentPullComparison {
     this.oldConsoleLog = null;
 
   }
+
+  /*this.testData = {"test":{
+
+                "start_date": "",
+                "stream": "",
+                "log_location": "",
+                "comparisions_total": 0,
+                "equal": 0,
+                "non_equal": 0,
+                "percentage_non_equal": 0,
+                "hourly_summaries":[]
+
+                }};
+
+*/
+
+  getPercentageNonEquals(t, ne){
+
+    return ne/t*100;
+
+  }
+
+  setUpTestData(streamObj){
+    var self = this;
+    self.testData.start_date = new Date();
+    self.testData.stream = streamObj.path;
+
+    externalip(function (err, ip) {
+          self.testData.log_location = "http://"+ip+__dirname;
+    });
+
+
+
+
+
+}
+
+  updateTestData(testObj, sizes, result){
+
+    //, this.testData.non_equal_fragments.push({"test":{"fragment":testObj.chunkPath, "sizes":sizes}
+
+    this.testData.comparisions_total=this.testData.comparisions_total+1;
+    console.log("The total: "+this.testData.comparisions_total);
+    var t;
+    result === true ? this.testData.equal++: this.testData.non_equal++, t = true;
+    this.testData.percentage_non_equal = this.getPercentageNonEquals(this.testData.comparisions_total,this.testData.non_equal);
+
+    console.log(util.inspect(this.testData, false, null));
+
+}
+
+  buildHorlySummary(){
+
+
+  }
+
+
 
 
 setConstants(obj){
@@ -166,7 +249,9 @@ setUpMail(recipiants){
 beginTest(){
 
   if(this.config){this.setConstants(this.config.config)};
+
     this.streamObj = this.streamParse(this.streamString);
+    this.setUpTestData(this.streamObj);
     this.createFolder('./', 'logs', this.createLogFile.bind(this));
     this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
@@ -208,7 +293,9 @@ createLogFile(){
 
 stopManifestInterval(){
 
-  var d = +new Date()
+  var d = +new Date();
+
+  console.log("stop man called");
 
 
   clearInterval(this.intervalA);
@@ -230,7 +317,7 @@ stopManifestInterval(){
 
 stopEvent(stopTime){
   var self = this;
-  console.log("timeout until stop"+stopTime/10);
+  //console.log("timeout until stop"+stopTime/10);
   let stopInt = setTimeout(function(){
     self.stopManifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
   }, stopTime);
@@ -238,12 +325,13 @@ stopEvent(stopTime){
 }
 startEvent(startTime, stream){
 
-  console.log("STREAM"+stream);
+  //console.log("STREAM"+stream);
   var self = this;
-  console.log("timeout until start"+startTime/10);
+  //console.log("timeout until start"+startTime/10);
   self.streamObj = self.streamParse(stream);
   let startInt = setTimeout(function(){
     self.log('TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+self.streamObj.path+' , BITRATE: '+self.bitRates[self.Q_index]+', FRAGMENT OFFSET: '+self.fragmentOffSet);
+    console.log("start event");
     self.manifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
   }, startTime);
 
@@ -252,12 +340,13 @@ startEvent(startTime, stream){
 
 afterFolders(){
 
-  console.log("The sced: "+util.inspect(this.schedule, false, null));
-  if(this.schedule.length === 0 ){
+  var now = +new Date();
+  console.log(this.schedule[0].startTime < now);
+  if(this.schedule.length === 0 || this.schedule[0].startTime < now){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
   } else {
     var t = this.schedule[this.scheduleCount].startTime;
-    var now = +new Date();
+
     var startTime = t - now;
     this.startEvent(startTime, this.schedule[this.scheduleCount].stream);
   }
@@ -265,25 +354,20 @@ afterFolders(){
 
 manifestInterval(callback, stream) {
 
-  console.log(callback, stream);
+  console.log("manifestInterval: "+stream);
 
   var self = this;
+  var now = +new Date();
+  console.log("self.intervalA: "+self.intervalA);
     if(!self.intervalA){
       self.intervalA = setInterval(function(){
         self.downloadManifest(callback, stream);
       }, self.manifestIntervalLength);
     }
-    if(this.scedule){
-      if(this.sceduleCount < this.scedule.length){
-        var t = this.scedule[this.sceduleCount].endTime;
-        var now = +new Date();
-        var stopTime = t - now;
-        console.log("T: "+t);
-        console.log("N: "+now);
-    if(this.schedule){
+    if(this.schedule.length > 0 && this.schedule.startTime > now){
       if(this.scheduleCount < this.schedule.length){
         var t = this.schedule[this.scheduleCount].endTime;
-        var now = +new Date();
+
         var stopTime = t - now;
         this.stopEvent(stopTime);
       }
@@ -379,7 +463,6 @@ fragmentRequest (options, callback, _hosts, obj) {
                     if(self.testIds.indexOf('RAM_VS_DISC') > -1){
                         self.testFragmentEquality({'original_ram':obj.original_ram, 'original': obj.original}, 'RAM_VS_DISC');
                     }
->>>>>>> feature/load_scedule_from_file
                 }
 
        } else if(obj.hostA.chunkPath !== '' && obj.hostB.chunkPath !== '' && obj.hostC.chunkPath !== '' && obj.hostD.chunkPath !== ''){
@@ -466,20 +549,17 @@ testFragmentEquality (obj, testid){
 
       var str = 'TEST: '+testid+' '+D+' - '+bits[bits.length-1]; // the file name
 
+      this.updateTestData(obj,sizes,EQ);
+
       if(EQ === false){
         var si = util.inspect(sizes, false, null);
         var s = si.toString();
         str+=' - '+ this.NONEQUALITY_MESSAGE + s;
         this.log(str, testid);
-        var sortable = [];
-        for(var key in obj){
-           sortable.push([key, obj[key]]);
-        }
-        sortable.sort(function(a, b) {
-                return a[1] - b[1];
-        });
 
-        console.log("The sorted arrar "+util.inspect(sortable, false, null));
+
+
+        //console.log("The sorted arrar "+util.inspect(sortable, false, null));
 
         this.relocateNonEqualFragments(obj, testid);
       } else {
@@ -489,11 +569,11 @@ testFragmentEquality (obj, testid){
         str+=' - '+ this.EQUALITY_MESSAGE;
         this.log(str, testid);
       }
-      console.log(testid);
+      //console.log(testid);
       if(testid === 'RAM_VS_DISC'){
 
       for(var key in obj){
-        console.log(obj[key].chunkPath);
+        //console.log(obj[key].chunkPath);
         fs.unlink(obj[key].chunkPath, function(){
               //array.shift();
         })
@@ -506,8 +586,10 @@ testFragmentEquality (obj, testid){
 
 downloadManifest(callback, streamObj){
 
+  console.log("DL");
+
   var self = this;
-  self.consoleToggle(false);
+  self.consoleToggle(true);
   var url = this.buildManifestUrl(streamObj);
   request.get(url, function(err,res,body) {
 
@@ -525,6 +607,7 @@ downloadManifest(callback, streamObj){
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                 let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
                 let q = self.bitRates[self.Q_index];
+                console.log("DL2");
 
                 let obj = {'original':{'chunkPath':''}, 'original_ram':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
                 self.downloadChunk(offSetChunk, 'original', q, false, function(){
