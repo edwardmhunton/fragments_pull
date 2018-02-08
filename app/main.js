@@ -591,7 +591,6 @@ downloadManifest(callback, streamObj){
          })
        }
        if(array.length >= self.offSetBufferLength) {
-         //console.log(self.UNLINK_FRAGMENT_MESSAGE+" path");
          //remove();
        }
      }
