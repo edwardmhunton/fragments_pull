@@ -6,6 +6,8 @@ import util from 'util';
 
 import request from 'request';
 
+import externalip from 'externalip';
+
 import {parseString} from 'xml2js';
 
 import path from 'path';
@@ -42,17 +44,33 @@ class FragmentPullComparison {
     this.ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
     this.UNLINK_FRAGMENT_MESSAGE = "FRAGMENT HAS BEEN DELETED";
 
-<<<<<<< HEAD
-
     this.testedFiles = []; // array of the files that have been tested
 
-    // this is best Epoh time converter https://www.epochconverter.com/
+    this.hourlySummaryTemplate = {
+                                  "time":"",
+                                  "comparisions":0,
+                                  "equal":0,
+                                  "non-equal":0,
+                                  "percentage_non_equal":0,
+                                  "percentage_hourly_change":0
+                                }
 
-=======
-    this.testedFiles = []; // array of the files that have been tested
+
+    this.testData = {"test":{
+
+                  "start_date": "",
+                  "stream": "",
+                  "log_location": "",
+                  "comparisions_total": 0,
+                  "equal": 0,
+                  "non_equal": 0,
+                  "percentage_non_equal": 0,
+                  "hourly_summaries":new Array(),
+                  "non_equal_fragments":new Array()
+
+                  }};
 
     // best Epoh time converter https://www.epochconverter.com/
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
     this.hosts = {
       'non-equals':{
         'ip': ''
@@ -72,11 +90,6 @@ class FragmentPullComparison {
       }
     }
 
-<<<<<<< HEAD
-    // DEFAULT VALUES /////////// -- overiden by values in config.json
-
-=======
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
     this.mainIntervalLength = 60000; //60 secs
 
     this.manifestIntervalLength = 2000; // 2 sec
@@ -112,10 +125,63 @@ class FragmentPullComparison {
 
   }
 
-<<<<<<< HEAD
-=======
 
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
+  /*this.testData = {"test":{
+
+                "start_date": "",
+                "stream": "",
+                "log_location": "",
+                "comparisions_total": 0,
+                "equal": 0,
+                "non_equal": 0,
+                "percentage_non_equal": 0,
+                "hourly_summaries":[]
+
+                }};
+
+*/
+
+  getPercentageNonEquals(t, ne){
+
+    return ne/t*100;
+
+  }
+
+  setUpTestData(streamObj){
+    var self = this;
+    self.testData.start_date = new Date();
+    self.testData.stream = streamObj.path;
+
+    externalip(function (err, ip) {
+          self.testData.log_location = "http://"+ip+__dirname;
+    });
+
+
+
+
+
+}
+
+  updateTestData(testObj, sizes, result){
+
+    //, this.testData.non_equal_fragments.push({"test":{"fragment":testObj.chunkPath, "sizes":sizes}
+
+    this.testData.comparisions_total=this.testData.comparisions_total+1;
+    console.log("The total: "+this.testData.comparisions_total);
+    var t;
+    result === true ? this.testData.equal++: this.testData.non_equal++, t = true;
+    this.testData.percentage_non_equal = this.getPercentageNonEquals(this.testData.comparisions_total,this.testData.non_equal);
+
+    console.log(util.inspect(this.testData, false, null));
+
+}
+
+  buildHorlySummary(){
+
+
+  }
+
+
 setConstants(obj){
 
     for(var key in obj){
@@ -173,10 +239,6 @@ setUpWatchers(){
 
 setUpMail(recipiants){
 
-<<<<<<< HEAD
-
-=======
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   var files = [
     {filename: 'test.txt',
      path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
@@ -192,7 +254,9 @@ setUpMail(recipiants){
 beginTest(){
 
   if(this.config){this.setConstants(this.config.config)};
+
     this.streamObj = this.streamParse(this.streamString);
+    this.setUpTestData(this.streamObj);
     this.createFolder('./', 'logs', this.createLogFile.bind(this));
     this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
@@ -223,10 +287,7 @@ createLogFile(){
     }
     console.log(this.LOG_FILE_SUCCESS);
   });
-<<<<<<< HEAD
-=======
 
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   fs.writeFile(this.log_ac, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
@@ -237,12 +298,10 @@ createLogFile(){
 
 stopManifestInterval(){
 
-  var d = +new Date()
+  var d = +new Date();
 
-<<<<<<< HEAD
-  console.log("stop manifest interval");
-=======
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
+  console.log("stop man called");
+
 
   clearInterval(this.intervalA);
   this.intervalA = null;
@@ -263,7 +322,7 @@ stopManifestInterval(){
 
 stopEvent(stopTime){
   var self = this;
-  console.log("timeout until stop"+stopTime/10);
+  //console.log("timeout until stop"+stopTime/10);
   let stopInt = setTimeout(function(){
     self.stopManifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
   }, stopTime);
@@ -271,12 +330,13 @@ stopEvent(stopTime){
 }
 startEvent(startTime, stream){
 
-  console.log("STREAM"+stream);
+  //console.log("STREAM"+stream);
   var self = this;
-  console.log("timeout until start"+startTime/10);
+  //console.log("timeout until start"+startTime/10);
   self.streamObj = self.streamParse(stream);
   let startInt = setTimeout(function(){
     self.log('TEST STARTED: '+new Date()+', STREAM UNDER TEST: '+self.streamObj.path+' , BITRATE: '+self.bitRates[self.Q_index]+', FRAGMENT OFFSET: '+self.fragmentOffSet);
+    console.log("start event");
     self.manifestInterval(self.testFragmentEquality.bind(self), self.streamObj);
   }, startTime);
 
@@ -284,16 +344,17 @@ startEvent(startTime, stream){
 
 
 afterFolders(){
-<<<<<<< HEAD
-=======
 
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
+
   console.log("The sced: "+util.inspect(this.schedule, false, null));
   if(this.schedule.length === 0 ){
+  var now = +new Date();
+  console.log(this.schedule[0].startTime < now);
+  if(this.schedule.length === 0 || this.schedule[0].startTime < now){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
   } else {
     var t = this.schedule[this.scheduleCount].startTime;
-    var now = +new Date();
+
     var startTime = t - now;
     this.startEvent(startTime, this.schedule[this.scheduleCount].stream);
   }
@@ -301,16 +362,16 @@ afterFolders(){
 
 manifestInterval(callback, stream) {
 
-  console.log(callback, stream);
+  console.log("manifestInterval: "+stream);
 
   var self = this;
+  var now = +new Date();
+  console.log("self.intervalA: "+self.intervalA);
     if(!self.intervalA){
       self.intervalA = setInterval(function(){
         self.downloadManifest(callback, stream);
       }, self.manifestIntervalLength);
     }
-<<<<<<< HEAD
-=======
     if(this.scedule){
       if(this.sceduleCount < this.scedule.length){
         var t = this.scedule[this.sceduleCount].endTime;
@@ -318,11 +379,11 @@ manifestInterval(callback, stream) {
         var stopTime = t - now;
         console.log("T: "+t);
         console.log("N: "+now);
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
     if(this.schedule){
+    if(this.schedule.length > 0 && this.schedule.startTime > now){
       if(this.scheduleCount < this.schedule.length){
         var t = this.schedule[this.scheduleCount].endTime;
-        var now = +new Date();
+
         var stopTime = t - now;
         this.stopEvent(stopTime);
       }
@@ -472,11 +533,6 @@ relocateNonEqualFragments (obj, testid){
 
 testFragmentEquality (obj, testid){
 
-<<<<<<< HEAD
-  console.log(util.inspect(obj, false, null));
-
-=======
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
 
@@ -492,10 +548,7 @@ testFragmentEquality (obj, testid){
                   sizes.push(stats.size)
                 }
                   catch(err) {
-<<<<<<< HEAD
-=======
 
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
                       console.log('check on file '+frag+' : it does not exist');
                   }
              } else {
@@ -512,48 +565,31 @@ testFragmentEquality (obj, testid){
 
       var str = 'TEST: '+testid+' '+D+' - '+bits[bits.length-1]; // the file name
 
+      this.updateTestData(obj,sizes,EQ);
+
       if(EQ === false){
         var si = util.inspect(sizes, false, null);
         var s = si.toString();
         str+=' - '+ this.NONEQUALITY_MESSAGE + s;
         this.log(str, testid);
-        var sortable = [];
-        for(var key in obj){
-           sortable.push([key, obj[key]]);
-        }
-        sortable.sort(function(a, b) {
-                return a[1] - b[1];
-        });
 
-        console.log("The sorted arrar "+util.inspect(sortable, false, null));
+
+
+        //console.log("The sorted arrar "+util.inspect(sortable, false, null));
 
         this.relocateNonEqualFragments(obj, testid);
       } else {
-<<<<<<< HEAD
-        //var si = util.inspect(sizes, false, null);
-        //var s = si.toString();
-        /*var sortable = [];
-        for(var key in obj){
-           sortable.push([key, obj[key]]);
-        }
-        sortable.sort(function(a, b) {
-                return a[1] - b[1];
-        });*/
 
-        //console.log("The sorted arrar "+util.inspect(sortable, false, null));
-=======
-
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
 
       ///  this.relocateNonEqualFragments(obj, testid);
         str+=' - '+ this.EQUALITY_MESSAGE;
         this.log(str, testid);
       }
-      console.log(testid);
+      //console.log(testid);
       if(testid === 'RAM_VS_DISC'){
 
       for(var key in obj){
-        console.log(obj[key].chunkPath);
+        //console.log(obj[key].chunkPath);
         fs.unlink(obj[key].chunkPath, function(){
               //array.shift();
         })
@@ -566,12 +602,10 @@ testFragmentEquality (obj, testid){
 
 downloadManifest(callback, streamObj){
 
+  console.log("DL");
+
   var self = this;
-<<<<<<< HEAD
-  //self.consoleToggle(false);
-=======
   self.consoleToggle(false);
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   var url = this.buildManifestUrl(streamObj);
   request.get(url, function(err,res,body) {
 
@@ -589,6 +623,7 @@ downloadManifest(callback, streamObj){
                 let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                 let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
                 let q = self.bitRates[self.Q_index];
+                console.log("DL2");
 
                 let obj = {'original':{'chunkPath':''}, 'original_ram':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
                 self.downloadChunk(offSetChunk, 'original', q, false, function(){
@@ -598,10 +633,6 @@ downloadManifest(callback, streamObj){
                   self.downloadChunk(offSetChunk, 'original_ram', q, true, callback, obj); // the chunk in RAM
 
                 }, obj);
-<<<<<<< HEAD
-            ///  self.consoleToggle(false);
-=======
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
             }
           }.bind(this));
 
@@ -622,10 +653,6 @@ downloadManifest(callback, streamObj){
 
 
    createFolder(path, name, callback) {
-<<<<<<< HEAD
-     console.log()
-=======
->>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
        fs.mkdir(path+name, function(){
              callback();
        });
