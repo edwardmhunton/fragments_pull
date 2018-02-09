@@ -29,7 +29,7 @@ inputMail(i, o){
   ///////Email
   const from = this.tranporterAuth.user;
   const to  = i;
-  const subject  = "Fragment Comparison";
+  const subject  = "Fragment Comparison on "+o.testStream;
   const text = o.testStream+" : "+o.testDate;
   const html = '<b>Test Performed</b>';
   var mailOption = {
@@ -60,9 +60,5 @@ send(obj){
 }
 
 }
-
-var mail = new Mail();
-
-mail.send();
 
 module.exports = Mail;

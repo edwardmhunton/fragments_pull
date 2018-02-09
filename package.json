@@ -1,7 +1,7 @@
 {
   "name": "fragment_pulls",
   "version": "1.0.0",
-  "description": "",
+  "description": "application to download and compare HSS fragments from different locations",
   "main": "index.js",
   "scripts": {
     "start": "babel-node app/main.js",

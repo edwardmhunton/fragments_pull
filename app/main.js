@@ -42,11 +42,17 @@ class FragmentPullComparison {
     this.ERROR_EQUALITY_MESSAGE = "FRAGMENTS TESTED NON-EQUAL IN SIZE";
     this.UNLINK_FRAGMENT_MESSAGE = "FRAGMENT HAS BEEN DELETED";
 
+<<<<<<< HEAD
 
     this.testedFiles = []; // array of the files that have been tested
 
     // this is best Epoh time converter https://www.epochconverter.com/
 
+=======
+    this.testedFiles = []; // array of the files that have been tested
+
+    // best Epoh time converter https://www.epochconverter.com/
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
     this.hosts = {
       'non-equals':{
         'ip': ''
@@ -66,8 +72,11 @@ class FragmentPullComparison {
       }
     }
 
+<<<<<<< HEAD
     // DEFAULT VALUES /////////// -- overiden by values in config.json
 
+=======
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
     this.mainIntervalLength = 60000; //60 secs
 
     this.manifestIntervalLength = 2000; // 2 sec
@@ -103,6 +112,10 @@ class FragmentPullComparison {
 
   }
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
 setConstants(obj){
 
     for(var key in obj){
@@ -160,7 +173,10 @@ setUpWatchers(){
 
 setUpMail(recipiants){
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   var files = [
     {filename: 'test.txt',
      path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
@@ -207,6 +223,10 @@ createLogFile(){
     }
     console.log(this.LOG_FILE_SUCCESS);
   });
+<<<<<<< HEAD
+=======
+
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   fs.writeFile(this.log_ac, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
@@ -219,7 +239,10 @@ stopManifestInterval(){
 
   var d = +new Date()
 
+<<<<<<< HEAD
   console.log("stop manifest interval");
+=======
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
 
   clearInterval(this.intervalA);
   this.intervalA = null;
@@ -237,6 +260,7 @@ stopManifestInterval(){
   this.log('MANIFEST INTERVAL ENDED: '+d+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n');
 
 }
+
 stopEvent(stopTime){
   var self = this;
   console.log("timeout until stop"+stopTime/10);
@@ -260,6 +284,10 @@ startEvent(startTime, stream){
 
 
 afterFolders(){
+<<<<<<< HEAD
+=======
+
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   console.log("The sced: "+util.inspect(this.schedule, false, null));
   if(this.schedule.length === 0 ){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
@@ -281,6 +309,16 @@ manifestInterval(callback, stream) {
         self.downloadManifest(callback, stream);
       }, self.manifestIntervalLength);
     }
+<<<<<<< HEAD
+=======
+    if(this.scedule){
+      if(this.sceduleCount < this.scedule.length){
+        var t = this.scedule[this.sceduleCount].endTime;
+        var now = +new Date();
+        var stopTime = t - now;
+        console.log("T: "+t);
+        console.log("N: "+now);
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
     if(this.schedule){
       if(this.scheduleCount < this.schedule.length){
         var t = this.schedule[this.scheduleCount].endTime;
@@ -328,7 +366,6 @@ if(!host || !interval || !url || !t || !q ){
   if(interval !== 'original'){
     options.headers.Host =  host;
   }
-
   return options;
 
 }
@@ -435,8 +472,11 @@ relocateNonEqualFragments (obj, testid){
 
 testFragmentEquality (obj, testid){
 
+<<<<<<< HEAD
   console.log(util.inspect(obj, false, null));
 
+=======
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
 
@@ -452,6 +492,10 @@ testFragmentEquality (obj, testid){
                   sizes.push(stats.size)
                 }
                   catch(err) {
+<<<<<<< HEAD
+=======
+
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
                       console.log('check on file '+frag+' : it does not exist');
                   }
              } else {
@@ -485,6 +529,7 @@ testFragmentEquality (obj, testid){
 
         this.relocateNonEqualFragments(obj, testid);
       } else {
+<<<<<<< HEAD
         //var si = util.inspect(sizes, false, null);
         //var s = si.toString();
         /*var sortable = [];
@@ -496,6 +541,9 @@ testFragmentEquality (obj, testid){
         });*/
 
         //console.log("The sorted arrar "+util.inspect(sortable, false, null));
+=======
+
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
 
       ///  this.relocateNonEqualFragments(obj, testid);
         str+=' - '+ this.EQUALITY_MESSAGE;
@@ -519,7 +567,11 @@ testFragmentEquality (obj, testid){
 downloadManifest(callback, streamObj){
 
   var self = this;
+<<<<<<< HEAD
   //self.consoleToggle(false);
+=======
+  self.consoleToggle(false);
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
   var url = this.buildManifestUrl(streamObj);
   request.get(url, function(err,res,body) {
 
@@ -546,7 +598,10 @@ downloadManifest(callback, streamObj){
                   self.downloadChunk(offSetChunk, 'original_ram', q, true, callback, obj); // the chunk in RAM
 
                 }, obj);
+<<<<<<< HEAD
             ///  self.consoleToggle(false);
+=======
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
             }
           }.bind(this));
 
@@ -567,7 +622,10 @@ downloadManifest(callback, streamObj){
 
 
    createFolder(path, name, callback) {
+<<<<<<< HEAD
      console.log()
+=======
+>>>>>>> f8a515f28d2dc43ca6ccd31bac66d395fd5d5b57
        fs.mkdir(path+name, function(){
              callback();
        });
@@ -605,7 +663,6 @@ downloadManifest(callback, streamObj){
          })
        }
        if(array.length >= self.offSetBufferLength) {
-         //console.log(self.UNLINK_FRAGMENT_MESSAGE+" path");
          //remove();
        }
      }
