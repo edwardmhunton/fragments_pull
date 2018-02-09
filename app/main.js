@@ -75,9 +75,9 @@ class FragmentPullComparison {
       'non-equals':{
         'ip': ''
       },
-      'original_ram':{
+      'RAM':{
         'ip': ''
-      },'original':{
+      },'DISC':{
         'ip': ''
       },'hostA':{
         'ip': '90.211.176.20'
@@ -149,37 +149,82 @@ class FragmentPullComparison {
 
   setUpTestData(streamObj){
     var self = this;
-    self.testData.start_date = new Date();
-    self.testData.stream = streamObj.path;
+    self.testData.test.start_date = new Date();
+    self.testData.test.stream = streamObj.path;
 
     externalip(function (err, ip) {
-          self.testData.log_location = "http://"+ip+__dirname;
+          self.testData.test.log_location = "http://"+ip+__dirname + '/../logs/RAM_VS_DISC.txt';
+          self.testData.test.script_location = "http://"+ip+__dirname;
     });
-
-
-
-
-
 }
 
   updateTestData(testObj, sizes, result){
 
-    //, this.testData.non_equal_fragments.push({"test":{"fragment":testObj.chunkPath, "sizes":sizes}
+     console.log("testObj"+util.inspect(testObj, false, null));
 
-    this.testData.comparisions_total=this.testData.comparisions_total+1;
-    console.log("The total: "+this.testData.comparisions_total);
-    var t;
-    result === true ? this.testData.equal++: this.testData.non_equal++, t = true;
-    this.testData.percentage_non_equal = this.getPercentageNonEquals(this.testData.comparisions_total,this.testData.non_equal);
+    this.testData.test.comparisions_total=this.testData.test.comparisions_total+1;
+    if(result === true){
+      this.testData.test.equal++;
+      //this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
+    } else {
+      this.testData.test.non_equal++;
+      this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
+    }
+    this.testData.test.percentage_non_equal = this.getPercentageNonEquals(this.testData.test.comparisions_total,this.testData.test.non_equal);
 
     console.log(util.inspect(this.testData, false, null));
 
 }
 
-  buildHorlySummary(){
+sendHourlySummary(html){
+
+  this.mailObj.send({'html':html});
+
+}
+
+  buildHorlySummary(data, callback){
+
+    var D = dateFormat(data.test.start_date, "dddd, mmmm dS, yyyy, h:MM:ss TT");
+
+    function getNonEqualListItem(obj){
+
+      console.log("OB "+util.inspect(obj, false, null));
+
+      return '<li>Fragment: '+obj.fragment+', Bitrate: '+obj.quality+', Size in RAM: '+obj.ram+', Size on DISC: '+obj.disc+'</li>';
+
+    }
+
+    var textHtml = "<h2>Fragment comparison testing - Test started at "+D+"</h2>"+
+               "<p>Stream under test: "+data.test.stream+"</p>"+
+               "<p>Script running here: "+data.test.script_location+'</p>'+
+               '<p>The logs for the tests are located <a href="'+data.test.log_location+'">here</a></p>'+
+               '<h3>Summary since test started</h3>'+
+               '<p>Total comparisons: '+data.test.comparisions_total+'</p>'+
+               '<p>Equal / Non-Equal: '+data.test.equal+' / '+data.test.non_equal+'</p>'+
+               '<p>Percentage of non-equal fragments: '+data.test.percentage_non_equal+'</p>';
+
+               if(data.test.non_equal_fragments.length > 0){
+                 textHtml+="<h4>Unequal fragments</h4><ul>";
+                 for(var i in data.test.non_equal_fragments){
+
+                   textHtml+=getNonEqualListItem(data.test.non_equal_fragments[i]);
+
+                 }
+                 textHtml+="</ul>";
+               }
+
+
+
+
+               console.log(textHtml)
+
+               callback(textHtml);
+
 
 
   }
+
+
 
 
 setConstants(obj){
@@ -249,6 +294,19 @@ setUpMail(recipiants){
 
 }
 
+emailInterval(){
+
+  var self = this;
+
+  var emailInterval = setInterval(function(){
+
+    self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
+    console.log('buildHorlySummary');
+
+  }, 60000) // 1 min
+
+}
+
 
 
 beginTest(){
@@ -311,9 +369,9 @@ stopManifestInterval(){
     var now = +new Date();
     var startTime = t - now;
     this.startEvent(startTime, this.schedule[this.scheduleCount].stream);
-    this.mailObj.send({'testStream':this.streamObj.path, 'testDate': d}); // only send the logs when final test is compleate
+    //this.mailObj.send({'testStream':this.streamObj.path, 'testDate': d, 'testData':this.testData}); // only send the logs when final test is compleate
   } else if(this.scheduleCount === this.schedule.length && this.mail){
-    this.mailObj.send({'testStream':this.streamObj.path, 'testDate': d}); // only send the logs when final test is compleate
+    //this.mailObj.send({'testStream':this.streamObj.path, 'testDate': d}); // only send the logs when final test is compleate
   }
 
   this.log('MANIFEST INTERVAL ENDED: '+d+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n');
@@ -347,16 +405,17 @@ afterFolders(){
 
 
   console.log("The sced: "+util.inspect(this.schedule, false, null));
-  if(this.schedule.length === 0 ){
-  var now = +new Date();
-  console.log(this.schedule[0].startTime < now);
+    var now = +new Date();
+  //console.log(this.schedule[0].startTime < now);
   if(this.schedule.length === 0 || this.schedule[0].startTime < now){
         this.manifestInterval(this.testFragmentEquality.bind(this), this.streamObj);
+        this.emailInterval();
   } else {
     var t = this.schedule[this.scheduleCount].startTime;
 
     var startTime = t - now;
     this.startEvent(startTime, this.schedule[this.scheduleCount].stream);
+    this.emailInterval();
   }
 }
 
@@ -372,14 +431,7 @@ manifestInterval(callback, stream) {
         self.downloadManifest(callback, stream);
       }, self.manifestIntervalLength);
     }
-    if(this.scedule){
-      if(this.sceduleCount < this.scedule.length){
-        var t = this.scedule[this.sceduleCount].endTime;
-        var now = +new Date();
-        var stopTime = t - now;
-        console.log("T: "+t);
-        console.log("N: "+now);
-    if(this.schedule){
+
     if(this.schedule.length > 0 && this.schedule.startTime > now){
       if(this.scheduleCount < this.schedule.length){
         var t = this.schedule[this.scheduleCount].endTime;
@@ -424,7 +476,7 @@ if(!host || !interval || !url || !t || !q ){
         }
       };
 
-  if(interval !== 'original'){
+  if(interval !== 'DISC'){
     options.headers.Host =  host;
   }
   return options;
@@ -473,11 +525,11 @@ fragmentRequest (options, callback, _hosts, obj) {
 
       var hostBool = (obj.hostA.chunkPath === '' && obj.hostB.chunkPath === '' && obj.hostC.chunkPath === '' && obj.hostD.chunkPath === '');
 
-      if(obj.original_ram.chunkPath !== '' && obj.original.chunkPath !== '' && hostBool) {
+      if(obj.RAM.chunkPath !== '' && obj.DISC.chunkPath !== '' && hostBool) {
         if(self.testedFiles.indexOf(options.t+'_originals') === -1){
                   self.testedFiles.push(options.t+'_originals');
                     if(self.testIds.indexOf('RAM_VS_DISC') > -1){
-                        self.testFragmentEquality({'original_ram':obj.original_ram, 'original': obj.original}, 'RAM_VS_DISC');
+                        self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q}, 'RAM_VS_DISC');
                     }
                 }
 
@@ -531,6 +583,16 @@ relocateNonEqualFragments (obj, testid){
 
    ///  ***********  FS WORk ************ testing beyond scope ******************** /////////////////
 
+//formatObj(obj, sizes){
+
+  //console.log("obj:   "+util.inspect(obj, false, null));
+
+  //var n = {};
+
+
+
+//}//
+
 testFragmentEquality (obj, testid){
 
   var now = new Date();
@@ -553,7 +615,7 @@ testFragmentEquality (obj, testid){
                   }
              } else {
               console.log(this.ERROR_EQUALITY_MESSAGE);
-              var bits = obj.original.chunkPath.split('/');
+              var bits = obj.DISC.chunkPath.split('/');
               this.log('TEST: '+testid+' '+D+' - '+bits[bits.length-1]+' - '+ this.ERROR_EQUALITY_MESSAGE);
               this.relocateNonEqualFragments(obj, testid);
             }
@@ -561,9 +623,11 @@ testFragmentEquality (obj, testid){
        }
       let EQ = this.equivalence(obj, sizes);
 
-      var bits = obj.original.chunkPath.split('/');
+      var bits = obj.DISC.chunkPath.split('/');
 
       var str = 'TEST: '+testid+' '+D+' - '+bits[bits.length-1]; // the file name
+
+      console.log("The OBJ: "+util.inspect(obj, false, null));
 
       this.updateTestData(obj,sizes,EQ);
 
@@ -588,12 +652,19 @@ testFragmentEquality (obj, testid){
       //console.log(testid);
       if(testid === 'RAM_VS_DISC'){
 
-      for(var key in obj){
+        console.log(util.inspect(obj, false, null));
+
+    //  for(var key in obj){
         //console.log(obj[key].chunkPath);
-        fs.unlink(obj[key].chunkPath, function(){
+          fs.unlink(obj.RAM.chunkPath, function(){
+          })
+          fs.unlink(obj.DISC.chunkPath, function(){
+          })
+        //fs.unlink(obj[key].chunkPath, function(){
+
               //array.shift();
-        })
-      }
+      //  })
+      //}
 
       }
     }
@@ -605,7 +676,6 @@ downloadManifest(callback, streamObj){
   console.log("DL");
 
   var self = this;
-  self.consoleToggle(false);
   var url = this.buildManifestUrl(streamObj);
   request.get(url, function(err,res,body) {
 
@@ -625,12 +695,12 @@ downloadManifest(callback, streamObj){
                 let q = self.bitRates[self.Q_index];
                 console.log("DL2");
 
-                let obj = {'original':{'chunkPath':''}, 'original_ram':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
-                self.downloadChunk(offSetChunk, 'original', q, false, function(){
+                let obj = {'DISC':{'chunkPath':''}, 'RAM':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
+                self.downloadChunk(offSetChunk, 'DISC', q, false, function(){
                   var callback;
                   self.testIds.indexOf('ALL_CHUNKS') > -1 ? callback = self.createChunkTimeout.bind(self) : callback = function(){} ;
 
-                  self.downloadChunk(offSetChunk, 'original_ram', q, true, callback, obj); // the chunk in RAM
+                  self.downloadChunk(offSetChunk, 'RAM', q, true, callback, obj); // the chunk in RAM
 
                 }, obj);
             }

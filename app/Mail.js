@@ -29,9 +29,9 @@ inputMail(i, o){
   ///////Email
   const from = this.tranporterAuth.user;
   const to  = i;
-  const subject  = "Fragment Comparison on "+o.testStream;
-  const text = o.testStream+" : "+o.testDate;
-  const html = '<b>Test Performed</b>';
+  const subject  = "Fragment Comparison on ";
+  const text = "test";
+  const html = o.html;
   var mailOption = {
          from: from,
          to:  to,
