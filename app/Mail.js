@@ -29,7 +29,7 @@ inputMail(i, o){
   ///////Email
   const from = this.tranporterAuth.user;
   const to  = i;
-  const subject  = "Fragment Comparison on ";
+  const subject  = "Fragment Comparison Summary";
   const text = "test";
   const html = o.html;
   var mailOption = {

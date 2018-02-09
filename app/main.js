@@ -163,13 +163,13 @@ class FragmentPullComparison {
      console.log("testObj"+util.inspect(testObj, false, null));
 
     this.testData.test.comparisions_total=this.testData.test.comparisions_total+1;
-    if(result === true){
+  if(result === true){
       this.testData.test.equal++;
       //this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
-    } else {
+  } else {
       this.testData.test.non_equal++;
       this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
-    }
+  }
     this.testData.test.percentage_non_equal = this.getPercentageNonEquals(this.testData.test.comparisions_total,this.testData.test.non_equal);
 
     console.log(util.inspect(this.testData, false, null));
@@ -303,7 +303,7 @@ emailInterval(){
     self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
     console.log('buildHorlySummary');
 
-  }, 60000) // 1 min
+  }, 300000) // 30 min
 
 }
 
