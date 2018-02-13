@@ -14,9 +14,15 @@ class Mail {
               var nodemailer = require("nodemailer");
 
               this.transporter = nodemailer.createTransport({
-                service: 'gmail',
+                host: 'smtp.gmail.com',
                 auth: tranporterAuth
               });
+
+            //this.transporter = nodemailer.createTransport({
+              //  host: 'smtp.ethereal.email',
+              //  port: 587,
+              //  auth: tranporterAuth
+            //  });
 
               this.tranporterAuth = tranporterAuth;
               this.files = files;
@@ -45,6 +51,9 @@ inputMail(i, o){
 }
 
 send(obj){
+
+console.log("SEND IT OUT");
+
   for(var i in this.recipiants){
     this.transporter.sendMail(this.inputMail(this.recipiants[i], obj),function(err,success){
                 if(err){
