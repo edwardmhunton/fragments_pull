@@ -349,7 +349,7 @@ emailInterval(){
     self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
     console.log('buildHorlySummary');
 
-  }, 60000) // 1 min
+  }, 3600000) // 1 min
 
   //300000 = 5mins!!!!!
   //3600000 = 1hr
@@ -592,6 +592,9 @@ fragmentRequest (options, callback, _hosts, obj){
                         if(self.testedFiles.indexOf(options.t+'_originals') === -1){
                         console.log("2 ")
                                   self.testedFiles.push(options.t+'_originals');
+                                  if(self.testedFiles.length > 15){
+                                    self.testedFiles.shift(); ///
+                                  }
                                     if(self.testIds.indexOf('RAM_VS_DISC') > -1){
                                      console.log("3")
                                         self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q, 'originalPath':options.url}, 'RAM_VS_DISC');
