@@ -96,7 +96,7 @@ class FragmentPullComparison {
 
     this.fragmentLength = 20000000; // from oldest chunk to live
 
-    this.streamString = process.argv[2] || 'skysportsmainevent-go-hss.ak-cdn.skydvn.com/z2skysportsmainevent/1301';
+    this.streamString = process.argv[2] || 'origin7.skysportsmainevent.hss.skydvn.com/z2skysportsmainevent/1301';
 
     this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
 
@@ -192,9 +192,18 @@ getPercentageNonEqualsLastHour(lastHour){
     //  this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
 
   } else {
+
+    for(var i in sizes){ // dont cound zero byte fragments as partials
+        if(sizes[i] === '0' || sizes[i] === 0){
+          return;
+      
+        } else {
+
       this.testData.test.non_equal++;
       //this.testData.test.rolling_snap_shot.push(result);
       this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
+    }
+    }
   }
 
 
@@ -338,7 +347,7 @@ emailInterval(){
     self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
     console.log('buildHorlySummary');
 
-  }, 3600000) // ihr
+  }, 60000) // 1 min
 
   //300000 = 5mins!!!!!
   //3600000 = 1hr
@@ -566,7 +575,7 @@ fragmentRequest (options, callback, _hosts, obj){
 
 //  tempFile.on('open', function(){
 
-    var r = request(options, function(err, res, body){
+    request(options, function(err, res, body){
 
     }).pipe(fs.createWriteStream(tempFilepath)).on('close', function(){
 
@@ -579,7 +588,7 @@ fragmentRequest (options, callback, _hosts, obj){
                         if(self.testedFiles.indexOf(options.t+'_originals') === -1){
                                   self.testedFiles.push(options.t+'_originals');
                                     if(self.testIds.indexOf('RAM_VS_DISC') > -1){
-                                        self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q}, 'RAM_VS_DISC');
+                                        self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q, 'originalPath':options.url}, 'RAM_VS_DISC');
                                     }
                                 }
 
@@ -599,11 +608,11 @@ fragmentRequest (options, callback, _hosts, obj){
             tempFile.close(console.log("close"));
           });*/
 
-    r.on('finish', function(){
-              console.log("stream finish");
+    //r.on('finish', function(){
+            //  console.log("stream finish");
 
 
-          })
+        //  })
 
 
 }
@@ -778,6 +787,9 @@ downloadManifest(callback, streamObj){
 
   var self = this;
   var url = this.buildManifestUrl(streamObj);
+
+  console.log("DL: "+url);
+
   request.get(url, function(err,res,body) {
 
     parseString(body, function (err, result) {
