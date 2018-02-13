@@ -780,17 +780,22 @@ downloadManifest(callback, streamObj){
                 errFunc();
               } else {
                 console.log(self.MANIFEST_SUCCESS);
-                let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
-                let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
-                let q = self.bitRates[self.Q_index];
-                let obj = {'DISC':{'chunkPath':''}, 'RAM':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
-                self.downloadChunk(offSetChunk, 'DISC', q, false, function(){
-                  var callback;
-                  self.testIds.indexOf('ALL_CHUNKS') > -1 ? callback = self.createChunkTimeout.bind(self) : callback = function(){} ;
+                if(result.SmoothStreamingMedia){
+                    let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
+                    let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
+                    let q = self.bitRates[self.Q_index];
+                    let obj = {'DISC':{'chunkPath':''}, 'RAM':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
+                    self.downloadChunk(offSetChunk, 'DISC', q, false, function(){
+                      var callback;
+                      self.testIds.indexOf('ALL_CHUNKS') > -1 ? callback = self.createChunkTimeout.bind(self) : callback = function(){} ;
 
-                  self.downloadChunk(offSetChunk, 'RAM', q, true, callback, obj); // the chunk in RAM
+                      self.downloadChunk(offSetChunk, 'RAM', q, true, callback, obj); // the chunk in RAM
 
-                }, obj);
+                    }, obj);
+                  } else {
+                    self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj); // this CB shoul be ownloaManifest
+
+                  }
             }
           }.bind(this));
 
