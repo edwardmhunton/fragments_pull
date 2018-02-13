@@ -581,19 +581,19 @@ fragmentRequest (options, callback, _hosts, obj){
 
     }).pipe(fs.createWriteStream(tempFilepath)).on('close', function(){
 
-  //  console.log(" "+self.FRAGMENT_SUCCESS);
+    console.log(" "+self.FRAGMENT_SUCCESS);
 
                       obj[options.interval].chunkPath = self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4';
 
                       var hostBool = (obj.hostA.chunkPath === '' && obj.hostB.chunkPath === '' && obj.hostC.chunkPath === '' && obj.hostD.chunkPath === '');
 
                       if(obj.RAM.chunkPath !== '' && obj.DISC.chunkPath !== '' && hostBool) {
-                      //  console.log("1 "+util.inspect(self.testedFiles, false, null));
+                      console.log("1 "+util.inspect(self.testedFiles, false, null));
                         if(self.testedFiles.indexOf(options.t+'_originals') === -1){
-                        //  console.log("2 ")
+                        console.log("2 ")
                                   self.testedFiles.push(options.t+'_originals');
                                     if(self.testIds.indexOf('RAM_VS_DISC') > -1){
-                                    //  console.log("3")
+                                     console.log("3")
                                         self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q, 'originalPath':options.url}, 'RAM_VS_DISC');
 
 
