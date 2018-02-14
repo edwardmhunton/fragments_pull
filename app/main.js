@@ -349,7 +349,7 @@ emailInterval(){
     self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
     console.log('buildHorlySummary');
 
-  }, 3600000) // 1 min
+  }, 6000) // 1 min
 
   //300000 = 5mins!!!!!
   //3600000 = 1hr
