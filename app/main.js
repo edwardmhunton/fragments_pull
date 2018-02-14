@@ -46,7 +46,7 @@ class FragmentPullComparison {
 
     this.testedFiles = []; // array of the files that have been tested
 
-    this.called = 0; // change this !!!!!!!!!!!!
+    this.emailIntervalNumber = 30; //mins
 
     this.hourlySummaryTemplate = {
                                   "time":"",
@@ -144,15 +144,19 @@ class FragmentPullComparison {
 */
 
 getPercentageNonEqualsLastHour(lastHour){
+  console.log("last hour "+util.inspect(lastHour, false, null));
   var count = 0;
   for(var i in lastHour){
-    if(lastHour[i].hasOwnProperty('fragment')) continue;
+
+    //if(lastHour[i].hasOwnProperty('fragment')) continue;
     if(lastHour[i].fragment){
       count++;
     }
   }
 
-  return (count/30)*100;
+  console.log("The count: "+count);
+
+  return (count/lastHour.length)*100;
 
 }
 
@@ -184,19 +188,16 @@ getPercentageNonEqualsLastHour(lastHour){
 
     this.testData.test.comparisions_total=this.testData.test.comparisions_total+1;
 
-    if(this.testData.test.non_equal_fragments.length > 30){ // there are 3600 seconds in 1hr, the comparison is performed every 2 seconds
+    if(this.testData.test.non_equal_fragments.length > this.emailIntervalNumber*30){ // there are 3600 seconds in 1hr, the comparison is performed every 2 seconds
       //this.testData.test.rolling_snap_shot.shift();
       this.testData.test.non_equal_fragments.shift();
     }
-
-   //var result = false;
-  //  var sizes = [0, 500];
 
   if(result === true){
       this.testData.test.equal++;
     //  this.testData.test.rolling_snap_shot.push(result);
       this.testData.test.non_equal_fragments.push({'fragment':''}) // push in an empty holder
-    //  this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
+    //  this.testData.test.non_equal_fragments.push({'fragment': test©Obj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
 
   } else {
 
@@ -250,9 +251,11 @@ sendHourlySummary(html){
                '<p>Total comparisons: '+data.test.comparisions_total+'</p>'+
                '<p>Non-patial / Patial: '+data.test.equal+' / '+data.test.non_equal+'</p>'+
                '<p>Average of patial fragments over test duration : '+data.test.percentage_non_equal_alltime+'</p>'+
-               '<p>Average of patial fragments during the last hour : '+data.test.percentage_non_equal_lasthour+'</p>';
+               '<p>Total comparisons in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length+'</p>'+
+               '<p>Average number of comparisons per minute in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length/this.emailIntervalNumber+'</p>'+
+               '<p>Average of patial fragments during the last '+ this.emailIntervalNumber+' mins: '+data.test.percentage_non_equal_lasthour+'</p>';
 
-               if(data.test.non_equal_fragments.length > 0){
+               if(data.test.percentage_non_equal_lasthour > 0){
                  textHtml+="<h4>Unequal fragments in the last hour</h4><ul>";
                  for(var i in data.test.non_equal_fragments){
 
@@ -356,7 +359,9 @@ emailInterval(){
     self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
     console.log('buildHorlySummary');
 
-  }, 1800000) // 30 min
+  //}, 1800000) // 30 min
+
+},this.emailIntervalNumber*60000) // 1 min
 
   //300000 = 5mins!!!!!
   //3600000 = 1hr
