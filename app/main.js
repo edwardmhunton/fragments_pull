@@ -596,15 +596,15 @@ fragmentRequest (options, callback, _hosts, obj){
 
                       if(obj.RAM.chunkPath !== '' && obj.DISC.chunkPath !== '' && hostBool) {
                       console.log("1 "+util.inspect(self.testedFiles, false, null));
-                        if(self.testedFiles.indexOf(options.t+'_originals') === -1){
+                        if(self.testedFiles.indexOf(options.t) === -1){
                         console.log("2 ")
-                                  self.testedFiles.push(options.t+'_originals');
+                                  self.testedFiles.push(options.t);
                                   if(self.testedFiles.length > 15){
                                     self.testedFiles.shift(); ///
                                   }
-                                    if(self.testIds.indexOf('RAM_VS_DISC') > -1){
+                                  if(self.testIds.indexOf('RAM_VS_DISC') > -1){
                                      console.log("3")
-                                        self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q, 'originalPath':options.url}, 'RAM_VS_DISC');
+                                  self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q, 'originalPath':options.url}, 'RAM_VS_DISC');
 
 
                                     }
@@ -790,17 +790,22 @@ downloadManifest(callback, streamObj){
                 if(result.SmoothStreamingMedia){
                     let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                     let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
+
                     let q = self.bitRates[self.Q_index];
                     let obj = {'DISC':{'chunkPath':''}, 'RAM':{'chunkPath':''}, 'hostA':{'chunkPath':''}, 'hostB':{'chunkPath':''}, 'hostC':{'chunkPath':''}, 'hostD':{'chunkPath':''}};
-                    self.downloadChunk(offSetChunk, 'DISC', q, false, function(){
-                      var callback;
-                      self.testIds.indexOf('ALL_CHUNKS') > -1 ? callback = self.createChunkTimeout.bind(self) : callback = function(){} ;
+                    if(self.testedFiles.indexOf(offSetChunk) === -1){
+                          self.downloadChunk(offSetChunk, 'DISC', q, false, function(){
+                            var callback;
+                            self.testIds.indexOf('ALL_CHUNKS') > -1 ? callback = self.createChunkTimeout.bind(self) : callback = function(){} ;
 
-                      self.downloadChunk(offSetChunk, 'RAM', q, true, callback, obj); // the chunk in RAM
+                            self.downloadChunk(offSetChunk, 'RAM', q, true, callback, obj); // the chunk in RAM
 
-                    }, obj);
+                          }, obj);
+                      } else {
+                          self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj); // this CB shoul be ownloaManifest
+                      }
                   } else {
-                    self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj); // this CB shoul be ownloaManifest
+
 
                   }
             }
