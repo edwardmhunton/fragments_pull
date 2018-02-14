@@ -189,6 +189,9 @@ getPercentageNonEqualsLastHour(lastHour){
       this.testData.test.non_equal_fragments.shift();
     }
 
+   //var result = false;
+  //  var sizes = [0, 500];
+
   if(result === true){
       this.testData.test.equal++;
     //  this.testData.test.rolling_snap_shot.push(result);
@@ -197,24 +200,25 @@ getPercentageNonEqualsLastHour(lastHour){
 
   } else {
 
-    for(var i in sizes){ // dont cound zero byte fragments as partials
+
+
+    for(var i in sizes){ // dont count zero byte fragments as partials
         if(sizes[i] === '0' || sizes[i] === 0){
+          console.log("break");
           return;
 
-        } else {
-
+        }
+      }
       this.testData.test.non_equal++;
       //this.testData.test.rolling_snap_shot.push(result);
       console.log("PUSH IT!");
       this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
-    }
     }
   }
 
 
     //console.log(util.inspect(this.testData, false, null));
 
-}
 
 sendHourlySummary(html){
 
