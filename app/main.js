@@ -178,7 +178,9 @@ getPercentageNonEqualsLastHour(lastHour){
 
   updateTestData(testObj, sizes, result){
 
-     //console.log("testObj"+util.inspect(testObj, false, null));
+     console.log("testObj: "+util.inspect(testObj, false, null));
+     console.log("res: "+util.inspect(result, false, null));
+      console.log("sizes: "+util.inspect(sizes, false, null));
 
     this.testData.test.comparisions_total=this.testData.test.comparisions_total+1;
 
@@ -203,6 +205,7 @@ getPercentageNonEqualsLastHour(lastHour){
 
       this.testData.test.non_equal++;
       //this.testData.test.rolling_snap_shot.push(result);
+      console.log("PUSH IT!");
       this.testData.test.non_equal_fragments.push({'fragment': testObj.fragment, 'quality':testObj.bitrate, 'disc':sizes[0], 'ram':sizes[1]});
     }
     }
@@ -670,7 +673,7 @@ relocateNonEqualFragments (obj, testid){
 
 testFragmentEquality (obj, testid){
 
-  console.log("TEST EQUALITY");
+  console.log("TEST EQUALITY"+util.inspect(obj, false, null));
 
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
