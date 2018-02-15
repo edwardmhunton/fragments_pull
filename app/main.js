@@ -46,6 +46,10 @@ class FragmentPullComparison {
 
     this.testedFiles = []; // array of the files that have been tested
 
+  //  var d = new Date();
+
+    this.timeStamp = new Date().getTime();
+
     this.emailIntervalNumber = 1; //mins
 
     this.hourlySummaryTemplate = {
@@ -66,8 +70,8 @@ class FragmentPullComparison {
                   "comparisions_total": 0,
                   "equal": 0,
                   "non_equal": 0,
-                  "percentage_non_equal": 0,
-                  "rolling_snap_shot":new Array(),
+                  "percentage_non_equal_lasthour": 0.000,
+                  "percentage_non_equal_alltime": 0.000,
                   "non_equal_fragments":new Array()
 
                   }};
@@ -118,8 +122,8 @@ class FragmentPullComparison {
 
     this.fragpath = './fragments/';
 
-    this.log_rvd = './logs/RAM_VS_DISC_logFile.txt';
-    this.log_ac = './logs/ALL_CHUNKS_logFile.txt';
+    this.log_rvd = 'RAM_VS_DISC_logFile.txt';
+    this.log_ac = 'ALL_CHUNKS_logFile.txt';
 
     this.streamObj = {};
 
@@ -128,24 +132,39 @@ class FragmentPullComparison {
   }
 
 
-getPercentageNonEqualsLastHour(lastHour, callback){
+getPercentageNonEqualsLastHour(callback){
+
   var count = 0;
-  for(var i in lastHour){
-    if(lastHour[i].fragment){
+  for(var i in this.testData.test.non_equal_fragments){
+    if(this.testData.test.non_equal_fragments[i].fragment){
       count++;
     }
   }
+  console.log("NEs: "+util.inspect(this.testData.test.non_equal_fragments, false, null));
 
+  var c = (count/this.testData.test.non_equal_fragments.length)*100;
+//  console.log("c: "+c);
+  this.testData.test.percentage_non_equal_lasthour = c;
+  callback.bind(this);
   callback();
-  return (count/lastHour.length)*100;
+  //return c.toFixed(4);
 
 
 
 }
 
-  getPercentageNonEquals(t, ne, callback){
+  getPercentageNonEquals(callback){
+    //data.test.comparisions_total,this.testData.test.non_equal
+
+    this.testData.test.percentage_non_equal_alltime = this.testData.test.non_equal/this.testData.test.comparisions_total*100;
+
+    console.log("all testData"+util.inspect(this.testData, false, null));
+
+
+    //  console.log("p: "+p);
+
     callback();
-    return ne/t*100;
+    //return p.toFixed(4);
 
   }
 
@@ -163,10 +182,10 @@ getPercentageNonEqualsLastHour(lastHour, callback){
   updateTestData(testObj, sizes, result){
     this.testData.test.comparisions_total=this.testData.test.comparisions_total+1;
 
-    if(this.testData.test.non_equal_fragments.length > this.emailIntervalNumber*30){ // there are 3600 seconds in 1hr, the comparison is performed every 2 seconds
+    if(this.testData.test.non_equal_fragments.length >= this.emailIntervalNumber*30){ // there are 3600 seconds in 1hr, the comparison is performed every 2 seconds
       this.testData.test.non_equal_fragments.shift();
     }
-
+//  result = false;
   if(result === true){
       this.testData.test.equal++;
       this.testData.test.non_equal_fragments.push({'fragment':''}) // push in an empty holder
@@ -182,9 +201,25 @@ getPercentageNonEqualsLastHour(lastHour, callback){
     }
   }
 
+  resetLogs(){
+
+    console.log("RESET LOGS CALLED"+this);
+
+    this.timeStamp = new Date().getTime();
+
+    this.createLogFile();
+  }
+
 sendHourlySummary(html){
 
-  this.mailObj.send({'html':html});
+
+
+  this.mailObj.send({'html':html}, [{
+    filename: this.timeStamp+'.txt',
+    path: './logs/'+this.timeStamp+'_RAM_VS_DISC_logFile.txt' // stream this file]
+  }], this.resetLogs.bind(this));
+
+
 
 }
 
@@ -194,20 +229,29 @@ genHtml(data){
     return '<li>Fragment: '+obj.fragment+', Bitrate: '+obj.quality+', Size in RAM: '+obj.ram+', Size on DISC: '+obj.disc+'</li>';
   }
 
+  var cpm = data.test.non_equal_fragments.length/this.emailIntervalNumber;
+  var cp = cpm.toFixed(4);
+
+  console.log("cmp: "+cpm);
+  console.log("cp: "+cp);
+
+  console.log("last hr: "+data.test.percentage_non_equal_lasthour);
+
   var textHtml = "<h2>Fragment comparison testing - Test started at "+data.test.start_date+"</h2>"+
              "<p>Stream under test: "+data.test.stream+"</p>"+
              "<p>Script running here: "+data.test.script_location+'</p>'+
              '<p>The logs for the tests are located <a href="'+data.test.log_location+'">here</a></p>'+
-             '<h3>Summary since test started</h3>'+
+             '<h3>Summary over lifetime of test</h3>'+
              '<p>Total comparisons: '+data.test.comparisions_total+'</p>'+
              '<p>Non-patial / Patial: '+data.test.equal+' / '+data.test.non_equal+'</p>'+
-             '<p>Average of patial fragments over test duration : '+data.test.percentage_non_equal_alltime+'</p>'+
+             '<p>Percentage of patial fragments over test duration : '+data.test.percentage_non_equal_alltime+'</p>'+
+             '<h3>Summary of previous '+this.emailIntervalNumber+' mins</h3>'+
              '<p>Total comparisons in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length+'</p>'+
-             '<p>Average number of comparisons per minute in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length/this.emailIntervalNumber+'</p>'+
-             '<p>Average of patial fragments during the last '+ this.emailIntervalNumber+' mins: '+data.test.percentage_non_equal_lasthour+'</p>';
+             '<p>Average number of comparisons per minute in previous '+this.emailIntervalNumber+' mins: '+cp+'</p>'+
+             '<p>Percentage of patial fragments during the last '+ this.emailIntervalNumber+' mins: '+data.test.percentage_non_equal_lasthour+'</p>';
 
              if(data.test.percentage_non_equal_lasthour > 0){
-               textHtml+="<h4>Unequal fragments in the last hour</h4><ul>";
+               textHtml+='<h4>Unequal fragments in the previous '+this.emailIntervalNumber+' mins</h4><ul>';
                for(var i in data.test.non_equal_fragments){
 
                  if(data.test.non_equal_fragments[i].fragment){ // if its an empty string do nothing
@@ -225,15 +269,21 @@ genHtml(data){
 
 }
 
-  buildHorlySummary(data, callback){
+  buildHorlySummary(callback){
 
 
 
-    data.test.percentage_non_equal_alltime = this.getPercentageNonEquals(data.test.comparisions_total,this.testData.test.non_equal, function(){
 
-          data.test.percentage_non_equal_lasthour = this.getPercentageNonEqualsLastHour(data.test.non_equal_fragments, function(){
 
-                  var html = this.genHtml(data);
+     this.getPercentageNonEquals(function(){
+
+           this.getPercentageNonEqualsLastHour(function(){
+
+            //console.log("data for summary "+util.inspect(data, false, null));
+
+                  var html = this.genHtml(this.testData);
+
+                  console.log("The state of the test data before we send:  "+util.inspect(this.testData, false, null));
 
                   callback(html);
 
@@ -302,13 +352,11 @@ setUpWatchers(){
 
 setUpMail(recipiants){
 
-  var files = [
-    {filename: 'test.txt',
-     path: './logs/RAM_VS_DISC_logFile.txt' // stream this file]
-   }]
 
-  var mailObj = new Mail(recipiants, this.mail.transporterAuth, files);
+  var mailObj = new Mail(recipiants, this.mail.transporterAuth);
   this.mailObj = mailObj;
+
+
 
 }
 
@@ -318,7 +366,7 @@ emailInterval(){
 
   var emailInterval = setInterval(function(){
 
-    self.buildHorlySummary(self.testData, self.sendHourlySummary.bind(self));
+    self.buildHorlySummary(self.sendHourlySummary.bind(self));
     console.log('buildHorlySummary');
 
   },this.emailIntervalNumber*60000)
@@ -333,7 +381,11 @@ beginTest(){
 
     this.streamObj = this.streamParse(this.streamString);
     this.setUpTestData(this.streamObj);
-    this.createFolder('./', 'logs', this.createLogFile.bind(this));
+
+    this.deleteFolder('./logs', function(){
+      this.createFolder('./', 'logs', this.createLogFile.bind(this));
+    }.bind(this));
+
     this.deleteFolder(this.fragpath, function(){
     this.createChunkFolders(this.fragpath, this.hosts, this.setUpWatchers.bind(this));
     this.createFolder(this.fragpath, 'non-equals-ram_vs_disc', function(){});
@@ -357,14 +409,14 @@ createChunkTimeout(obj, t){
 }
 
 createLogFile(){
-  fs.writeFile(this.log_rvd, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
+  fs.writeFile('./logs/'+this.timeStamp+'_'+this.log_rvd, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
     console.log(this.LOG_FILE_SUCCESS);
   });
 
-  fs.writeFile(this.log_ac, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
+  fs.writeFile('./logs/'+this.timeStamp+'_'+this.log_ac, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
@@ -678,7 +730,7 @@ downloadManifest(callback, streamObj){
               if(err !== null || res.statusCode !== 200){
                 errFunc();
               } else {
-                console.log(self.MANIFEST_SUCCESS);
+                //console.log(self.MANIFEST_SUCCESS);
                 if(result.SmoothStreamingMedia){
                     let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                     let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
@@ -772,13 +824,13 @@ downloadManifest(callback, streamObj){
      var logFile = '';
      switch (testid) {
        case 'RAM_VS_DISC':
-       logFile = this.log_rvd;
+       logFile = './logs/'+this.timeStamp+'_'+this.log_rvd;
          break;
         case 'ALL_CHUNKS':
-        logFile = this.log_ac;
+        logFile = './logs/'+this.timeStamp+'_'+this.log_ac;
            break;
        default:
-         logFile = this.log_rvd;
+         logFile = './logs/'+this.timeStamp+'_'+this.log_rvd;
      }
 
      var stream = fs.createWriteStream(logFile, {flags:'a'});

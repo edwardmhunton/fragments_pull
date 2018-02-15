@@ -31,7 +31,9 @@ class Mail {
             }
 
 
-inputMail(i, o){
+inputMail(i, o, f){
+
+  console.log("FFFFF is for files: "+f);
   ///////Email
   const from = this.tranporterAuth.user;
   const to  = i;
@@ -44,27 +46,32 @@ inputMail(i, o){
          subject: subject,
          text: text,
          html: html,
-         attachments:this.files
+         attachments:f
      }
     return mailOption;
 
 }
 
-send(obj){
+send(obj, f, callback){
 
-console.log("SEND IT OUT");
+console.log("SEND IT OUT"+f.length);
 
   for(var i in this.recipiants){
-    this.transporter.sendMail(this.inputMail(this.recipiants[i], obj),function(err,success){
+    this.transporter.sendMail(this.inputMail(this.recipiants[i], obj, f),function(err,success){
                 if(err){
                   //  events.emit('error', err);
                 }
                 if(success){
                   //  events.emit('success', success);
                 }
+                callback();
                 });
 
   }
+
+
+
+
 
 }
 
