@@ -46,7 +46,7 @@ class FragmentPullComparison {
 
     this.testedFiles = []; // array of the files that have been tested
 
-    this.emailIntervalNumber = 30; //mins
+    this.emailIntervalNumber = 1; //mins
 
     this.hourlySummaryTemplate = {
                                   "time":"",
@@ -128,19 +128,23 @@ class FragmentPullComparison {
   }
 
 
-getPercentageNonEqualsLastHour(lastHour){
+getPercentageNonEqualsLastHour(lastHour, callback){
   var count = 0;
   for(var i in lastHour){
     if(lastHour[i].fragment){
       count++;
     }
   }
+
+  callback();
   return (count/lastHour.length)*100;
+
+
 
 }
 
-  getPercentageNonEquals(t, ne){
-
+  getPercentageNonEquals(t, ne, callback){
+    callback();
     return ne/t*100;
 
   }
@@ -184,45 +188,64 @@ sendHourlySummary(html){
 
 }
 
-  buildHorlySummary(data, callback){
+genHtml(data){
 
-    var D = dateFormat(data.test.start_date, "dddd, mmmm dS, yyyy, h:MM:ss TT");
+  function getNonEqualListItem(obj){
+    return '<li>Fragment: '+obj.fragment+', Bitrate: '+obj.quality+', Size in RAM: '+obj.ram+', Size on DISC: '+obj.disc+'</li>';
+  }
 
-    data.test.percentage_non_equal_alltime = this.getPercentageNonEquals(data.test.comparisions_total,this.testData.test.non_equal);
+  var textHtml = "<h2>Fragment comparison testing - Test started at "+data.test.start_date+"</h2>"+
+             "<p>Stream under test: "+data.test.stream+"</p>"+
+             "<p>Script running here: "+data.test.script_location+'</p>'+
+             '<p>The logs for the tests are located <a href="'+data.test.log_location+'">here</a></p>'+
+             '<h3>Summary since test started</h3>'+
+             '<p>Total comparisons: '+data.test.comparisions_total+'</p>'+
+             '<p>Non-patial / Patial: '+data.test.equal+' / '+data.test.non_equal+'</p>'+
+             '<p>Average of patial fragments over test duration : '+data.test.percentage_non_equal_alltime+'</p>'+
+             '<p>Total comparisons in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length+'</p>'+
+             '<p>Average number of comparisons per minute in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length/this.emailIntervalNumber+'</p>'+
+             '<p>Average of patial fragments during the last '+ this.emailIntervalNumber+' mins: '+data.test.percentage_non_equal_lasthour+'</p>';
 
-    data.test.percentage_non_equal_lasthour = this.getPercentageNonEqualsLastHour(data.test.non_equal_fragments);
+             if(data.test.percentage_non_equal_lasthour > 0){
+               textHtml+="<h4>Unequal fragments in the last hour</h4><ul>";
+               for(var i in data.test.non_equal_fragments){
 
-    function getNonEqualListItem(obj){
-      return '<li>Fragment: '+obj.fragment+', Bitrate: '+obj.quality+', Size in RAM: '+obj.ram+', Size on DISC: '+obj.disc+'</li>';
-    }
+                 if(data.test.non_equal_fragments[i].fragment){ // if its an empty string do nothing
 
-    var textHtml = "<h2>Fragment comparison testing - Test started at "+D+"</h2>"+
-               "<p>Stream under test: "+data.test.stream+"</p>"+
-               "<p>Script running here: "+data.test.script_location+'</p>'+
-               '<p>The logs for the tests are located <a href="'+data.test.log_location+'">here</a></p>'+
-               '<h3>Summary since test started</h3>'+
-               '<p>Total comparisons: '+data.test.comparisions_total+'</p>'+
-               '<p>Non-patial / Patial: '+data.test.equal+' / '+data.test.non_equal+'</p>'+
-               '<p>Average of patial fragments over test duration : '+data.test.percentage_non_equal_alltime+'</p>'+
-               '<p>Total comparisons in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length+'</p>'+
-               '<p>Average number of comparisons per minute in previous '+this.emailIntervalNumber+' mins: '+data.test.non_equal_fragments.length/this.emailIntervalNumber+'</p>'+
-               '<p>Average of patial fragments during the last '+ this.emailIntervalNumber+' mins: '+data.test.percentage_non_equal_lasthour+'</p>';
-
-               if(data.test.percentage_non_equal_lasthour > 0){
-                 textHtml+="<h4>Unequal fragments in the last hour</h4><ul>";
-                 for(var i in data.test.non_equal_fragments){
-
-                   if(data.test.non_equal_fragments[i].fragment){ // if its an empty string do nothing
-
-                   textHtml+=getNonEqualListItem(data.test.non_equal_fragments[i]);
-
-                   }
+                 textHtml+=getNonEqualListItem(data.test.non_equal_fragments[i]);
 
                  }
-                 textHtml+="</ul>";
-               }
 
-               callback(textHtml);
+               }
+               textHtml+="</ul>";
+             }
+
+
+             return textHtml;
+
+}
+
+  buildHorlySummary(data, callback){
+
+
+
+    data.test.percentage_non_equal_alltime = this.getPercentageNonEquals(data.test.comparisions_total,this.testData.test.non_equal, function(){
+
+          data.test.percentage_non_equal_lasthour = this.getPercentageNonEqualsLastHour(data.test.non_equal_fragments, function(){
+
+                  var html = this.genHtml(data);
+
+                  callback(html);
+
+          }.bind(this));
+
+    }.bind(this));
+
+
+
+
+
+
 }
 
 
