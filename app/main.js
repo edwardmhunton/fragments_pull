@@ -50,7 +50,7 @@ class FragmentPullComparison {
 
     this.timeStamp = new Date().getTime();
 
-    this.emailIntervalNumber = 30; //mins
+    this.emailIntervalNumber = 180; //mins
 
     this.hourlySummaryTemplate = {
                                   "time":"",
