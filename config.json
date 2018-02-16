@@ -7,6 +7,7 @@
   "manifestIntervalLength":2000,
   "mainIntervalLength":60000,
   "fragmentLength":20000000,
+  "emailIntervalNumber":3,
   "streamString": "origin7.skysportsmainevent.hss.skydvn.com/z2skysportsmainevent/1301",
   "bitRates" : ["89984","280000", "619968", "1179968", "2014976", "3184960", "4864960"],
   "schedule": [
@@ -17,7 +18,7 @@
       "user": "sky.fragmenttester@gmail.com",
       "pass": "fragment1234"
 
-    }, "recipiants":["edward.hunton@sky.uk","Duncan.Thompson@sky.uk"]
+    }, "recipiants":["edward.hunton@sky.uk"]
   }
 
 }}

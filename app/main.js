@@ -50,7 +50,7 @@ class FragmentPullComparison {
 
     this.timeStamp = new Date().getTime();
 
-    this.emailIntervalNumber = 180; //mins
+
 
     this.hourlySummaryTemplate = {
                                   "time":"",
@@ -102,13 +102,15 @@ class FragmentPullComparison {
 
     this.fragmentLength = 20000000; // from oldest chunk to live
 
-    this.streamString = process.argv[2] || 'origin7.skysportsmainevent.hss.skydvn.com/z2skysportsmainevent/1301';
+    this.emailIntervalNumber = process.argv[2] || 3; //mins
 
-    this.fragmentOffSet = process.argv[3] || 53; // from oldest chunk to live
+    this.streamString = process.argv[3] || 'origin7.skysportsmainevent.hss.skydvn.com/z2skysportsmainevent/1301';
 
-    this.Q_index = process.argv[4] || 6;
+    this.fragmentOffSet = process.argv[4] || 53; // from oldest chunk to live
 
-    this.mode = process.argv[5] || 'debug';
+    this.Q_index = process.argv[5] || 6;
+
+    this.mode = process.argv[6] || 'debug';
 
     this.offSetBufferLength = 15; // how many files retain as a buffer before deleting them
 
@@ -140,7 +142,7 @@ getPercentageNonEqualsLastHour(callback){
       count++;
     }
   }
-  console.log("NEs: "+util.inspect(this.testData.test.non_equal_fragments, false, null));
+  //console.log("NEs: "+util.inspect(this.testData.test.non_equal_fragments, false, null));
 
   var c = (count/this.testData.test.non_equal_fragments.length)*100;
 //  console.log("c: "+c);
@@ -158,7 +160,7 @@ getPercentageNonEqualsLastHour(callback){
 
     this.testData.test.percentage_non_equal_alltime = this.testData.test.non_equal/this.testData.test.comparisions_total*100;
 
-    console.log("all testData"+util.inspect(this.testData, false, null));
+    //console.log("all testData"+util.inspect(this.testData, false, null));
 
 
     //  console.log("p: "+p);
@@ -279,11 +281,7 @@ genHtml(data){
 
            this.getPercentageNonEqualsLastHour(function(){
 
-            //console.log("data for summary "+util.inspect(data, false, null));
-
                   var html = this.genHtml(this.testData);
-
-                  console.log("The state of the test data before we send:  "+util.inspect(this.testData, false, null));
 
                   callback(html);
 
@@ -571,6 +569,8 @@ equivalence (obj, sizes){
 
 
 fragmentRequest (options, callback, _hosts, obj){
+
+  console.log("fragment success");
   var self = this;
   var tempFilepath = self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4';
 
@@ -649,6 +649,8 @@ relocateNonEqualFragments (obj, testid){
 
 testFragmentEquality (obj, testid){
 
+  console.log("Test em");
+
   var now = new Date();
   var D = dateFormat(now, "dddd, mmmm dS, yyyy, h:MM:ss TT");
 
@@ -718,6 +720,8 @@ downloadManifest(callback, streamObj){
   var self = this;
   var url = this.buildManifestUrl(streamObj);
 
+  console.log("DL MAN")
+
   request.get(url, function(err,res,body) {
 
     parseString(body, function (err, result) {
@@ -725,12 +729,13 @@ downloadManifest(callback, streamObj){
              const errFunc = function(){
                 console.log(self.MANIFEST_WARNING);
                 self.log(self.MANIFEST_WARNING+url);
+                self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj); // this CB shoul be ownloaManifest
                 return;
               }
               if(err !== null || res.statusCode !== 200){
                 errFunc();
               } else {
-                //console.log(self.MANIFEST_SUCCESS);
+              console.log(self.MANIFEST_SUCCESS);
                 if(result.SmoothStreamingMedia){
                     let currentTimeCode = parseInt(result.SmoothStreamingMedia.StreamIndex[0].c[0].$.t);
                     let offSetChunk = currentTimeCode+(self.fragmentLength*self.fragmentOffSet);
