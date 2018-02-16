@@ -46,6 +46,8 @@ class FragmentPullComparison {
 
     this.testedFiles = []; // array of the files that have been tested
 
+    this.mode = 'debug'; // overwritten by config.json
+
   //  var d = new Date();
 
     this.timeStamp = new Date().getTime();
@@ -210,6 +212,13 @@ getPercentageNonEqualsLastHour(callback){
     this.timeStamp = new Date().getTime();
 
     this.createLogFile();
+
+    console.log('man called in resent logs');
+
+    this.downloadManifest(this.testFragmentEquality.bind(self), this.streamObj); // belts and braces
+
+
+
   }
 
 sendHourlySummary(html){
@@ -306,6 +315,9 @@ setConstants(obj){
           this[key] = obj[key];
       }
     }
+    if(this.mode === 'prod'){
+      this.consoleToggle(false);
+    }
 }
 
 consoleToggle(toggle){
@@ -374,6 +386,8 @@ emailInterval(){
 
 
 beginTest(){
+
+
 
   if(this.config){this.setConstants(this.config.config)};
 
@@ -480,6 +494,7 @@ manifestInterval(callback, stream) {
 
   var self = this;
   var now = +new Date();
+  console.log('in man man int');
   self.downloadManifest(callback, stream);
 
 
@@ -570,28 +585,41 @@ equivalence (obj, sizes){
 
 fragmentRequest (options, callback, _hosts, obj){
 
-  console.log("fragment success");
+  console.log("fragment request");
   var self = this;
   var tempFilepath = self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4';
 
     request(options, function(err, res, body){
 
-    }).pipe(fs.createWriteStream(tempFilepath)).on('close', function(){
+      console.log('error:', err); // Print the error if one occurred
+  console.log('statusCode:',  res.statusCode); // Print the response status code if a response was received
+  if(err !== null || res.statusCode !== 200){
+    self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj);
 
+  }
+  //console.log('body:', body);
+
+    }).pipe(fs.createWriteStream(tempFilepath)).on('close', function(){
+      console.log("fragment sucess");
                       obj[options.interval].chunkPath = self.fragpath+options.interval+'/'+options.t+'_'+options.q+'_chunk.mp4';
 
                       var hostBool = (obj.hostA.chunkPath === '' && obj.hostB.chunkPath === '' && obj.hostC.chunkPath === '' && obj.hostD.chunkPath === '');
 
+
+console.log("1")
                       if(obj.RAM.chunkPath !== '' && obj.DISC.chunkPath !== '' && hostBool) {
+                        console.log("2")
                         if(self.testedFiles.indexOf(options.t) === -1){
+                          console.log("3")
                                   self.testedFiles.push(options.t);
-                                  if(self.testedFiles.length > 15){
+                                  if(self.testedFiles.length > 30){
                                     self.testedFiles.shift(); ///
                                   }
                                   if(self.testIds.indexOf('RAM_VS_DISC') > -1){
                                         self.testFragmentEquality({'RAM':obj.RAM, 'DISC': obj.DISC, 'fragment': options.t, 'bitrate':options.q, 'originalPath':options.url}, 'RAM_VS_DISC');
                                   }
                                 } else {
+                                  console.log('in frag if dup');
                                   self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj);
                                 }
 
@@ -706,7 +734,7 @@ testFragmentEquality (obj, testid){
           })
           fs.unlink(obj.DISC.chunkPath, function(){
           })
-
+            console.log('after test');
           this.downloadManifest(this.testFragmentEquality.bind(this), this.streamObj);
 
 
@@ -716,6 +744,8 @@ testFragmentEquality (obj, testid){
 
 
 downloadManifest(callback, streamObj){
+
+  console.log('man d called');
 
   var self = this;
   var url = this.buildManifestUrl(streamObj);
@@ -751,6 +781,7 @@ downloadManifest(callback, streamObj){
 
                           }, obj);
                       } else {
+                        console.log('in man if dup');
                           self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj); // this CB shoul be ownloaManifest
                       }
                   } else {
