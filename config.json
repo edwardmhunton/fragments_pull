@@ -2,7 +2,7 @@
   "__commemts":"testIds can be RAM_VS_DISC, ALL_CHUNKS or both, Q_Index can be 0-6 (6 is top), fragmentOffSet is how close to 'live', offSetBufferLength is number of chunks kept on dsic before deletion, recipiants are people to be mailed the logs when the test completes",
   "testIds": ["RAM_VS_DISC"],
   "Q_index":6,
-  "mode":"prod",
+  "mode":"debug",
   "fragmentOffSet":53,
   "offSetBufferLength":20,
   "manifestIntervalLength":2000,

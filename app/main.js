@@ -215,7 +215,7 @@ getPercentageNonEqualsLastHour(callback){
 
     console.log('man called in resent logs');
 
-    this.downloadManifest(this.testFragmentEquality.bind(self), this.streamObj); // belts and braces
+    //this.downloadManifest(this.testFragmentEquality.bind(self), this.streamObj); // belts and braces
 
 
 
@@ -593,10 +593,10 @@ fragmentRequest (options, callback, _hosts, obj){
 
       console.log('error:', err); // Print the error if one occurred
   console.log('statusCode:',  res.statusCode); // Print the response status code if a response was received
-  if(err !== null || res.statusCode !== 200){
+  /*if(err !== null || res.statusCode !== 200){
     self.downloadManifest(self.testFragmentEquality.bind(self), self.streamObj);
 
-  }
+  }*/
   //console.log('body:', body);
 
     }).pipe(fs.createWriteStream(tempFilepath)).on('close', function(){
