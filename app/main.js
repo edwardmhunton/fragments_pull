@@ -207,13 +207,13 @@ getPercentageNonEqualsLastHour(callback){
 
   resetLogs(){
 
-    console.log("RESET LOGS CALLED"+this);
+    //console.log("RESET LOGS CALLED"+this);
 
-    this.timeStamp = new Date().getTime();
+    //this.timeStamp = new Date().getTime();
 
-    this.createLogFile();
+    //this.createLogFile();
 
-    console.log('man called in resent logs');
+    //console.log('man called in resent logs');
 
     //this.downloadManifest(this.testFragmentEquality.bind(self), this.streamObj); // belts and braces
 
@@ -428,12 +428,12 @@ createLogFile(){
     console.log(this.LOG_FILE_SUCCESS);
   });
 
-  fs.writeFile('./logs/'+this.timeStamp+'_'+this.log_ac, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
+/*  fs.writeFile('./logs/'+this.timeStamp+'_'+this.log_ac, 'APP RUN: '+new Date()+', STREAM UNDER TEST: '+this.streamObj.path+' , BITRATE: '+this.bitRates[this.Q_index]+', FRAGMENT OFFSET: '+this.fragmentOffSet+'\n', (err) => {
     if (err) {
       throw err;
     }
     console.log(this.LOG_FILE_SUCCESS);
-  });
+  });*/
 }
 
 stopManifestInterval(){
@@ -725,7 +725,7 @@ testFragmentEquality (obj, testid){
 
 
         str+=' - '+ this.EQUALITY_MESSAGE;
-        this.log(str, testid);
+        //this.log(str, testid);
       }
       if(testid === 'RAM_VS_DISC'){
 
